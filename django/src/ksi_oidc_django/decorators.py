@@ -4,7 +4,7 @@ from functools import wraps
 from django.conf import settings
 
 from ._consts import SKIP_SSO_CHECK_COOKIE
-from .utils import redirect_to_oidc_login, is_oidc_auth_backend_enabled
+from .utils import redirect_to_oidc_login, is_oidc_auth_backend_enabled, ensure_middleware_was_applied
 
 
 def ksi_oidc_check_sso(function):
@@ -30,6 +30,8 @@ def ksi_oidc_check_sso(function):
 
     @wraps(function)
     def wrap(request, *args, **kwargs):
+        ensure_middleware_was_applied(request)
+
         if should_run_check(request):
             response = redirect_to_oidc_login(request, request.get_full_path(), prompt_none=True)
             cooldown_seconds = getattr(settings, 'OIDC_AUTH_SSO_CHECK_COOLDOWN_SECONDS', 300)
@@ -57,6 +59,8 @@ def ksi_oidc_login_required(function):
 
     @wraps(function)
     def wrap(request, *args, **kwargs):
+        ensure_middleware_was_applied(request)
+
         if not request.user.is_authenticated:
             return redirect_to_oidc_login(request, request.get_full_path())
 

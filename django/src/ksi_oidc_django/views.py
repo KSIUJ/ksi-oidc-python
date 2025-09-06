@@ -16,7 +16,8 @@ from ksi_oidc_common.errors import OidcProviderError
 from ._common import logger, get_login_redirect_uri, get_logout_redirect_uri, oidc_client
 from ._consts import SESSION_TOKENS_SESSION_KEY, STATES_SESSION_KEY
 from ._user_sessions import login_with_oidc_backend
-from .utils import redirect_to_oidc_login, is_oidc_auth_backend_enabled, is_user_authenticated_with_oidc
+from .utils import redirect_to_oidc_login, is_oidc_auth_backend_enabled, is_user_authenticated_with_oidc, \
+    ensure_middleware_was_applied
 
 
 class OidcLoginView(View):
@@ -86,7 +87,9 @@ class CallbackView(View):
         if not is_oidc_auth_backend_enabled():
             # It's not this package that triggered the authentication,
             # and authenticating wouldn't be possible anyway without the backend.
-            raise SuspiciousOperation("OidcAuthBackend is not enabled")
+            raise SuspiciousOperation("Received a response from the OIDC provider, but OidcAuthBackend is not enabled")
+
+        ensure_middleware_was_applied(request)
 
         authorization_response: Optional[AuthorizationResponse] = None
         try:

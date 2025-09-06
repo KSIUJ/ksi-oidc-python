@@ -12,7 +12,7 @@ from django.utils.module_loading import import_string
 from ksi_oidc_common.errors import OidcProviderError
 
 from ._common import logger, get_login_redirect_uri, oidc_client
-from ._consts import STATES_SESSION_KEY, SESSION_TOKENS_SESSION_KEY
+from ._consts import STATES_SESSION_KEY, SESSION_TOKENS_SESSION_KEY, MIDDLEWARE_APPLIED_KEY, MIDDLEWARE_APPLIED_VALUE
 from ._user_sessions import refresh_access_token
 from .backends import OidcAuthBackend
 
@@ -45,6 +45,24 @@ def is_user_authenticated_with_oidc(request: HttpRequest) -> bool:
     return issubclass(auth_backend, OidcAuthBackend)
 
 
+def ensure_middleware_was_applied(request: HttpRequest):
+    """
+    This functions verifies that the `OidcAuthMiddleware` was applied to the request
+    and raises an `ImproperlyConfigured` exception if it wasn't.
+    """
+
+    # `OidcAuthMiddleware` checks if the `OidcAuthBackend` is enabled and raises
+    # `MiddlewareNotUsed` if it's not, so we should not run the check in this case.
+    if not is_oidc_auth_backend_enabled():
+        return
+
+    if getattr(request, MIDDLEWARE_APPLIED_KEY, None) is not MIDDLEWARE_APPLIED_VALUE:
+        raise ImproperlyConfigured(
+            "The `OidcAuthMiddleware` was not applied to this request. "
+            "This indicates a configuration error, the `OidcAuthMiddleware` is crutial for security."
+        )
+
+
 def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: bool = False) -> HttpResponse:
     """
     Redirects to the OIDC login page if the `OidcAuthBackend` is enabled or to the `LOGIN_URL` otherwise.
@@ -68,6 +86,8 @@ def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: boo
             )
 
         return redirect_to_login(next_url)
+
+    ensure_middleware_was_applied(request)
 
     state = get_random_string(32)
     nonce = get_random_string(32)
@@ -99,6 +119,11 @@ def refresh_oidc_auth_session(request: HttpRequest):
 
     `OidcAuthMiddleware` calls this function for all requests.
     """
+
+    # Set a flag in the request object indicating that the middleware was applied.
+    # Views provided in this package will use this flag to make sure that the app is
+    # configured properly by callling the `_common.ensure_middleware_was_applied` function.
+    setattr(request, MIDDLEWARE_APPLIED_KEY, MIDDLEWARE_APPLIED_VALUE)
 
     if not is_user_authenticated_with_oidc(request):
         return

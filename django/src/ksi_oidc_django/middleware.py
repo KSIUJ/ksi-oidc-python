@@ -19,6 +19,4 @@ class OidcAuthMiddleware:
     def __call__(self, request):
         refresh_oidc_auth_session(request)
 
-        # TODO: Set a key on the request object and verify that the middleware works before logging users in.
-
         return self.get_response(request)
