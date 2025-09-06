@@ -1,4 +1,4 @@
-# ksi-oicd-django
+# ksi-oidc-django
 
 ## About this package
 This package adds OpenID Connect authentication functionality for Django projects.
@@ -114,7 +114,7 @@ urlpatterns = [
 ]
 ```
 You may change the paths. Make sure to set the setting [`LOGIN_URL`] to the path of the login page.
-`ksi-oicd-django` also uses the standard [`LOGOUT_REDIRECT_URL`] setting, set it to the path
+`ksi-oidc-django` also uses the standard [`LOGOUT_REDIRECT_URL`] setting, set it to the path
 you want the user to be redirected to after logging out.
 
 In the settings of your OIDC provider you will need to add the `/oidc/callback/` URL as a valid redirect URL
@@ -139,7 +139,7 @@ urlpatterns = [
 ```
 
 ## Custom decorators
-`ksi-oicd-django` provides these new view decorators:
+`ksi-oidc-django` provides these new view decorators:
 
 - `@ksi_auth_login_required` performs the same check as Django's `@login_required`,
     but if the user is not logged in, it redirects the user directly to the OIDC login page
