@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, UTC, timedelta
-from typing import Self
+from typing import Self, Optional
 
 from oic.extension.token import JWTToken
 from oic.oic import AccessTokenResponse
@@ -24,8 +24,13 @@ class Tokens:
     def from_response(
         response: AccessTokenResponse,
         access_token_roles: list[str],
-        request_time: datetime = datetime.now(UTC),
+        request_time: Optional[datetime] = None,
     ) -> "Tokens":
+        # The default argument value cannot be used for this,
+        # because `datetime.now(UTC)` would onle be resolved once.
+        if request_time is None:
+            request_time = datetime.now(UTC)
+
         access_expires_in = response.get("expires_in", None)
         if access_expires_in is None:
             raise ValueError("Missing expires_in in access token response")
