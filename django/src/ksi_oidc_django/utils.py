@@ -5,6 +5,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
+from django.utils.cache import add_never_cache_headers
 from django.utils.crypto import get_random_string
 from django.utils.module_loading import import_string
 
@@ -58,7 +59,7 @@ def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: boo
     #
     # Note: This could result in an infinite loop if the view at `LOGIN_URL` uses `redirect_to_oidc_login`
     #       when the `KsiAuthBackend` is not enabled.
-    #       The default `BaseLoginView` calls `redirect_to_oidc_login` only if the `KsiAuthBackend` is enabled,
+    #       The default `OidcLoginView` calls `redirect_to_oidc_login` only if the `KsiAuthBackend` is enabled,
     #       so this is not a problem when the `LOGIN_URL` is (a subclass of) `KsiAuthBackend`.
     if not is_ksi_auth_backend_enabled():
         if prompt_none:
@@ -86,7 +87,9 @@ def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: boo
 
     redirect_url = get_login_redirect_uri(request)
     authentication_url = oidc_client.get_authentication_url(redirect_url, nonce, state, prompt_none)
-    return redirect(authentication_url)
+    response = redirect(authentication_url)
+    add_never_cache_headers(response)
+    return response
 
 
 def refresh_ksi_auth_session(request: HttpRequest):

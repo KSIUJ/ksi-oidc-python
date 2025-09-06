@@ -1,3 +1,5 @@
+from ksi_oidc_django.views import OidcLoginView
+
 # ksi-oidc-django
 
 ## About this package
@@ -107,7 +109,7 @@ Add these entries in your `urls.py`:
 urlpatterns = [
     # ...
     
-    path('login/', BaseLoginView.as_view(), name='login'),
+    path('login/', OidcLoginView.as_view(), name='login'),
     
     # Register the endpoints `/oidc/callback/` and `/oidc/logout/`:
     path('oidc/', include('ksi_oidc_django.urls')),
@@ -120,20 +122,15 @@ you want the user to be redirected to after logging out.
 In the settings of your OIDC provider you will need to add the `/oidc/callback/` URL as a valid redirect URL
 and the [`LOGOUT_REDIRECT_URL`] URL as a valid post logout redirect URL.
 
-`BaseLoginView` redirects the user to the OIDC provider's login page if the `KsiAuthBackend` is enabled.
-If it's not, it uses the view specified in `BaseLoginView.fallback_view` to render the login page.
-It uses [`DjangoLoginView`] by default. You can use a different view for this by subclassing `BaseLoginView`
-and overriding the `fallback_view` property.
+`OidcLoginView` redirects the user to the OIDC provider's login page if the `KsiAuthBackend` is enabled.
+If it's not, it uses the view specified in `OidcLoginView.fallback_view` to render the login page.
+It uses [`DjangoLoginView`] by default. You can use a different view for this by specifying the `fallback_view`
+when calling `.as_view()`:
 
 ```python
-# in views.py:
-class CustomLoginView(BaseLoginView):
-    fallback_view = MyFallbackLoginView.as_view()
-
-# in urls.py:
 urlpatterns = [
     # ...
-    path('login/', CustomLoginView.as_view(), name='login'),
+    path('login/', OidcLoginView.as_view(fallback_view=MyFallbackLoginView.as_view()), name='login'),
     # ...
 ]
 ```

@@ -6,6 +6,7 @@ from django.contrib.auth.views import LoginView as DjangoLoginView
 from django.core.exceptions import SuspiciousOperation
 from django.shortcuts import redirect
 from django.http import HttpRequest
+from django.utils.cache import add_never_cache_headers
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic.base import View
 from oic.oic import AuthorizationResponse
@@ -18,23 +19,34 @@ from ._user_sessions import login_with_ksi_backend
 from .utils import redirect_to_oidc_login, is_ksi_auth_backend_enabled, is_user_authenticated_with_ksi_auth
 
 
-class BaseLoginView(View):
+class OidcLoginView(View):
     """
     The ksi-django-oidc login view.
 
     If the user is authenticated, redirects the URL specified in the next query param
     or to `LOGIN_REDIRECT_URL`.
 
-    If `KsiAuthBackend` is not enabled, renders the view specified as `fallback_view`,
-    which can be changed in subclasses of `BaseLoginView`.
+    If `KsiAuthBackend` is not enabled, renders the view specified as `fallback_view`.
+    The fallback view can be modified when using `.as_view()` like so:
+    `OidcLoginView.as_view(fallback_view=some_view)`.
+
     If `KsiAuthBackend` is enabled, redirects the user directly to the OIDC login page.
 
     The path to this view should be set as the value of the `LOGIN_URL` setting.
     """
 
-    fallback_view = DjangoLoginView.as_view()
+    # Note that this `fallback_view` must be a class attribute,
+    # so that the `View.as_view()` method allows calling
+    # `OidcLoginView.as_view(fallback_view=some_view)`.
+    fallback_view = staticmethod(DjangoLoginView.as_view())
 
-    def get(self, request):
+    def __init__(self, fallback_view = None):
+        print("Initializing OidcLoginView with fallback_view = ", fallback_view)
+        if fallback_view is not None:
+            # `staticmethod` is used to avoid binding the `self` argument from `OidcLoginView`.
+            self.fallback_view = staticmethod(fallback_view)
+
+    def _get_next_url(self, request):
         next_url = settings.LOGIN_REDIRECT_URL
 
         if 'next' in request.GET:
@@ -48,15 +60,25 @@ class BaseLoginView(View):
             else:
                 logger.warning(f"Received an invalid next URL in the login request: {next_url}")
 
-        if request.user.is_authenticated:
-            return redirect(next_url)
+        return next_url
+
+    def dispatch(self, request):
+        if request.user.is_authenticated and request.method in ('GET', 'HEAD', 'POST'):
+            response = redirect(self._get_next_url(request))
+            add_never_cache_headers(response)
+            return response
 
         if not is_ksi_auth_backend_enabled():
-            # type(self) returns `BaseLoginView` or a subclass of it.
-            # Calling `fallback_view` in this way avoids passing `self` as an argument to `fallback_view`.
-            return type(self).fallback_view(request)
+            # When the fallback view is used, requests with all methods are passed to it.
+            # This might be needed if the fallback login view uses a HTML form with `method="post"`.
+            return self.fallback_view(request)
 
-        return redirect_to_oidc_login(request, next_url)
+        # There is no reason to allow submitting a POST request to the OIDC login endpoint.
+        if request.method not in ('GET', 'HEAD'):
+            return self.http_method_not_allowed()
+
+        return redirect_to_oidc_login(request, self._get_next_url(request))
+
 
 
 class CallbackView(View):
@@ -102,7 +124,9 @@ class CallbackView(View):
             # See https://docs.djangoproject.com/en/5.2/topics/http/sessions/#when-sessions-are-saved
             request.session.modified = True
 
-        return redirect(state_entry['next_url'])
+        response = redirect(state_entry['next_url'])
+        add_never_cache_headers(response)
+        return response
 
 
 class LogoutView(View):
@@ -123,4 +147,6 @@ class LogoutView(View):
             return redirect(settings.LOGOUT_REDIRECT_URL)
 
         logout_url = oidc_client.get_logout_url(get_logout_redirect_uri(request), id_token_hint)
-        return redirect(logout_url)
+        response = redirect(logout_url)
+        add_never_cache_headers(response)
+        return response
