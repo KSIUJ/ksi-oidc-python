@@ -1,10 +1,14 @@
 [project]
-version = "0.1.0"
+# The root package is not versioned and should not be installed anyway
+version = "0"
 name = "ksi-oidc-python"
 requires-python = ">=3.13.0"
 dependencies=[
     "ksi_oidc_django"
 ]
+
+[tool.uv]
+package=false
 
 [tool.uv.workspace]
 members = ["common", "django"]

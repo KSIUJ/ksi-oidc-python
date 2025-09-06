@@ -182,7 +182,7 @@ requires-dist = [
 
 [[package]]
 name = "ksi-oidc-django"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "django" }
 dependencies = [
     { name = "django" },
@@ -197,7 +197,7 @@ requires-dist = [
 
 [[package]]
 name = "ksi-oidc-python"
-version = "0.1.0"
+version = "0"
 source = { virtual = "." }
 dependencies = [
     { name = "ksi-oidc-django" },
