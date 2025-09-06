@@ -1,0 +1,21 @@
+# Editor files
+.vscode
+*.iml
+.idea
+
+# uv virtual environment
+.venv
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+*.egg

@@ -1,0 +1,19 @@
+[project]
+version = "0.1.0"
+name = "ksi-oidc-python"
+requires-python = ">=3.13.0"
+dependencies=[
+    "ksi_oidc_django"
+]
+
+[tool.uv.workspace]
+members = ["common", "django"]
+
+[tool.uv.sources]
+ksi-oidc-common = { workspace = true }
+ksi-oidc-django = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.1",
+]
