@@ -19,3 +19,4 @@ __pycache__/
 # Distribution / packaging
 *.egg-info/
 *.egg
+dist

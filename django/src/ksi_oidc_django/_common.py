@@ -29,7 +29,7 @@ def fetch_oidc_client():
         logger.warning("The OidcClient was already fetched with fetch_oidc_client()")
         return
 
-    if not 'KSI_AUTH_PROVIDER' in settings:
+    if not hasattr(settings, "KSI_AUTH_PROVIDER"):
         logger.warn("The setting KSI_AUTH_PROVIDER was not provided. If KsiAuthBackend is not enabled this is fine")
         return
 
