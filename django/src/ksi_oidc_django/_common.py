@@ -6,7 +6,6 @@ from django.http import HttpRequest
 from django.urls import reverse
 
 from ksi_oidc_common.client import OidcClient
-from ksi_oidc_django.utils import is_ksi_auth_backend_enabled
 from oic.exception import ImproperlyConfigured
 
 logger = logging.getLogger('ksi_oidc_django')
@@ -31,10 +30,7 @@ def fetch_oidc_client():
         return
 
     if not 'KSI_AUTH_PROVIDER' in settings:
-        if is_ksi_auth_backend_enabled():
-            raise ImproperlyConfigured("KsiAuthBackend is enabled, but the required setting KSI_AUTH_PROVIDER was not provided!")
-
-        logger.debug("The setting KSI_AUTH_PROVIDER was not provided, but KsiAuthBackend is not enabled, so this is fine.")
+        logger.warn("The setting KSI_AUTH_PROVIDER was not provided. If KsiAuthBackend is not enabled this is fine")
         return
 
     oidc_client = OidcClient.load(
