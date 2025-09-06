@@ -1,5 +1,3 @@
-from ksi_oidc_django.views import OidcLoginView
-
 # ksi-oidc-django
 
 ## About this package
