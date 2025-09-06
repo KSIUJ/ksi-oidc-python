@@ -14,9 +14,9 @@ This package adds OpenID Connect authentication functionality for Django project
   - Checking for an active SSO session using a redirection to the authentication endpoint with `prompt=none`
   - Endpoint for ending the SSO session and logging out from Django
   - (*Planned*) Back-channel logout
-- Support for disabling the `KsiAuthBackend` in the settings file without requiring other changes to the views
+- Support for disabling the `OidcAuthBackend` in the settings file without requiring other changes to the views
 - Syncing of user groups and staff/superuser status based on the `realm_access.roles` claim in the access token
-- Custom `@ksi_auth_login_required` and `@ksi_auth_check_sso` view decorators
+- Custom `@ksi_oidc_login_required` and `@ksi_oidc_check_sso` view decorators
 
 ## Notice
 The source code of this library incorporates modified source code from the [mozilla-django-oidc] library.
@@ -43,11 +43,11 @@ In the appropriate Django setting files:
     ]
     ```
 
-2. Add the `KsiAuthMiddleware` to `MIDDLEWARE`:
+2. Add the `OidcAuthMiddleware` to `MIDDLEWARE`:
 
     It must be placed __directly after__ Django's `AuthenticationMiddleware`, 
     because it is required for the session expiry and refresh logic to work.
-    If any other middleware was added in between `AuthenticationMiddleware` and `KsiAuthMiddleware`,
+    If any other middleware was added in between `AuthenticationMiddleware` and `OidcAuthMiddleware`,
     the `request.user` might be a user whose session has expired while processing that middleware.
 
     See [the Middleware Ordering section in the Django docs](https://docs.djangoproject.com/en/5.2/ref/middleware/#middleware-ordering)
@@ -58,7 +58,7 @@ In the appropriate Django setting files:
         'django.contrib.sessions.middleware.SessionMiddleware',
         # ...
         'django.contrib.auth.middleware.AuthenticationMiddleware',
-        'ksi_oidc_django.middleware.KsiAuthMiddleware',
+        'ksi_oidc_django.middleware.OidcAuthMiddleware',
         # ...
     ]
     ```
@@ -66,7 +66,7 @@ In the appropriate Django setting files:
 3. Add `ksi_oidc_django`-specific settings:
 
     ```python
-    KSI_AUTH_PROVIDER = {
+    OIDC_AUTH_PROVIDER = {
        # For example https://auth.ksi.ii.uj.edu.pl/auth/realms/KSI
        # The auth plugin will reach https://auth.ksi.ii.uj.edu.pl/auth/realms/KSI/.well-known/openid-configuration
        # for configuration discovery
@@ -86,21 +86,21 @@ In the appropriate Django setting files:
         'staff_role': 'ksi-admin',
         'superuser_role': 'ksi-admin',
     }
-    KSI_AUTH_SSO_CHECK_COOLDOWN_SECONDS = 300
+    OIDC_AUTH_SSO_CHECK_COOLDOWN_SECONDS = 300
     ```
 
-4. Add `KsiAuthBackend` to `AUTHENTICATION_BACKENDS`:
+4. Add `OidcAuthBackend` to `AUTHENTICATION_BACKENDS`:
     
     ```python
     AUTHENTICATION_BACKENDS = (
         # This is the standard Django backend, you can remove it if you only use
         # OpenID Connect for authentication.
         'django.contrib.auth.backends.ModelBackend',
-        'ksi_oidc_django.backends.KsiAuthBackend',
+        'ksi_oidc_django.backends.OidcAuthBackend',
     )
     ```
    
-    You can disable the `KsiAuthBackend` without removing the app and middleware.
+    You can disable the `OidcAuthBackend` without removing the app and middleware.
     The middleware will detect that the backend is not enabled and raise [`MiddlewareNotUsed`].
 
 ### Views configuration
@@ -122,7 +122,7 @@ you want the user to be redirected to after logging out.
 In the settings of your OIDC provider you will need to add the `/oidc/callback/` URL as a valid redirect URL
 and the [`LOGOUT_REDIRECT_URL`] URL as a valid post logout redirect URL.
 
-`OidcLoginView` redirects the user to the OIDC provider's login page if the `KsiAuthBackend` is enabled.
+`OidcLoginView` redirects the user to the OIDC provider's login page if the `OidcAuthBackend` is enabled.
 If it's not, it uses the view specified in `OidcLoginView.fallback_view` to render the login page.
 It uses [`DjangoLoginView`] by default. You can use a different view for this by specifying the `fallback_view`
 when calling `.as_view()`:
@@ -138,19 +138,19 @@ urlpatterns = [
 ## Custom decorators
 `ksi-oidc-django` provides these new view decorators:
 
-- `@ksi_auth_login_required` performs the same check as Django's `@login_required`,
+- `@ksi_oidc_login_required` performs the same check as Django's `@login_required`,
     but if the user is not logged in, it redirects the user directly to the OIDC login page
-    (if the `KsiAuthBackend` is enabled).
+    (if the `OidcAuthBackend` is enabled).
     
     If you were to use `@login_required` instead, accessing a protected view would redirect the user twice,
     first to the `LOGIN_URL`, which would then redirect the user to the OIDC login page.
 
-- `@ksi_auth_check_sso` is used for views that do not require authentication.
-    When an unauthenticated user tries to access a view decorated with `@ksi_auth_check_sso`,
+- `@ksi_oidc_check_sso` is used for views that do not require authentication.
+    When an unauthenticated user tries to access a view decorated with `@ksi_oidc_check_sso`,
     they will be redirected to the OIDC authentication endpoint with `prompt=none`,
     to check if the user already has an active SSO session.
 
-    The `KSI_AUTH_SSO_CHECK_COOLDOWN_SECONDS` setting controls the minimum time between such checks.
+    The `OIDC_AUTH_SSO_CHECK_COOLDOWN_SECONDS` setting controls the minimum time between such checks.
 
 [`LOGIN_URL`]: https://docs.djangoproject.com/en/5.2/ref/settings/#login-url
 [`LOGOUT_REDIRECT_URL`]: https://docs.djangoproject.com/en/5.2/ref/settings/#logout-redirect-url

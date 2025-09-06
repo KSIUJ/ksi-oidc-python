@@ -14,15 +14,15 @@ from ksi_oidc_common.errors import OidcProviderError
 from ._common import logger, get_login_redirect_uri, oidc_client
 from ._consts import STATES_SESSION_KEY, SESSION_TOKENS_SESSION_KEY
 from ._user_sessions import refresh_access_token
-from .backends import KsiAuthBackend
+from .backends import OidcAuthBackend
 
 
-def is_ksi_auth_backend_enabled() -> bool:
+def is_oidc_auth_backend_enabled() -> bool:
     # The list returned from `get_backends()` contains INSTANCES of the backends.
-    return any(isinstance(backend, KsiAuthBackend) for backend in get_backends())
+    return any(isinstance(backend, OidcAuthBackend) for backend in get_backends())
 
 
-def is_user_authenticated_with_ksi_auth(request: HttpRequest) -> bool:
+def is_user_authenticated_with_oidc(request: HttpRequest) -> bool:
     # This function is based on mozilla-django-oidc:
     # https://github.com/mozilla/mozilla-django-oidc/blob/774b140b9311c6c874c199bfdb266e51f36740a7/mozilla_django_oidc/middleware.py#L104C9-L109C82
 
@@ -42,12 +42,12 @@ def is_user_authenticated_with_ksi_auth(request: HttpRequest) -> bool:
         return False
 
     # The imported auth_backend is a CLASS TYPE, not an INSTANCE of it.
-    return issubclass(auth_backend, KsiAuthBackend)
+    return issubclass(auth_backend, OidcAuthBackend)
 
 
 def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: bool = False) -> HttpResponse:
     """
-    Redirects to the OIDC login page if the `KsiAuthBackend` is enabled or to the `LOGIN_URL` otherwise.
+    Redirects to the OIDC login page if the `OidcAuthBackend` is enabled or to the `LOGIN_URL` otherwise.
 
     The caller must ensure that the `next_url` is safe.
     """
@@ -55,16 +55,16 @@ def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: boo
     if next_url is None:
         raise ValueError("next_url must be provided")
 
-    # If the `KsiAuthBackend` is not enabled, redirect to `LOGIN_URL` instead of redirecting to the OIDC provider.
+    # If the `OidcAuthBackend` is not enabled, redirect to `LOGIN_URL` instead of redirecting to the OIDC provider.
     #
     # Note: This could result in an infinite loop if the view at `LOGIN_URL` uses `redirect_to_oidc_login`
-    #       when the `KsiAuthBackend` is not enabled.
-    #       The default `OidcLoginView` calls `redirect_to_oidc_login` only if the `KsiAuthBackend` is enabled,
-    #       so this is not a problem when the `LOGIN_URL` is (a subclass of) `KsiAuthBackend`.
-    if not is_ksi_auth_backend_enabled():
+    #       when the `OidcAuthBackend` is not enabled.
+    #       The default `OidcLoginView` calls `redirect_to_oidc_login` only if the `OidcAuthBackend` is enabled,
+    #       so this is not a problem when the `LOGIN_URL` is (a subclass of) `OidcAuthBackend`.
+    if not is_oidc_auth_backend_enabled():
         if prompt_none:
             raise ImproperlyConfigured(
-                "`prompt_none = True` in `redirect_to_oidc_login` is not supported when the `KsiAuthBackend` is not enabled"
+                "`prompt_none = True` in `redirect_to_oidc_login` is not supported when the `OidcAuthBackend` is not enabled"
             )
 
         return redirect_to_login(next_url)
@@ -92,8 +92,15 @@ def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: boo
     return response
 
 
-def refresh_ksi_auth_session(request: HttpRequest):
-    if not is_user_authenticated_with_ksi_auth(request):
+def refresh_oidc_auth_session(request: HttpRequest):
+    """
+    Verify the validity of the access token and refresh it if it has expired.
+    Logs the user out if refreshing the access token fails.
+
+    `OidcAuthMiddleware` calls this function for all requests.
+    """
+
+    if not is_user_authenticated_with_oidc(request):
         return
 
     try:

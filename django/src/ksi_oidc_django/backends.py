@@ -3,10 +3,10 @@ from django.contrib.auth.backends import BaseBackend
 from django.core.exceptions import SuspiciousOperation
 
 from ._user_sessions import sync_roles
-from .apps import KsiAuthConfig
+from .apps import KsiOidcAppConfig
 
 
-class KsiAuthBackend(BaseBackend):
+class OidcAuthBackend(BaseBackend):
     """
     This backend is loosely based on the one from mozilla-django-oidc.
 
@@ -15,7 +15,7 @@ class KsiAuthBackend(BaseBackend):
 
     def __init__(self):
         # The app also calls this function, but only if it's in the INSTALLED_APPS list
-        KsiAuthConfig.verify_correct_setup()
+        KsiOidcAppConfig.verify_correct_setup()
 
         super().__init__()
         self.user_model = get_user_model()

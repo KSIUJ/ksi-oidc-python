@@ -20,13 +20,13 @@ def sync_roles(user: User, roles: list[str]):
     will be removed from the user.
     """
 
-    if settings.KSI_AUTH_PROVIDER['staff_role'] is not None:
-        user.is_staff = settings.KSI_AUTH_PROVIDER['staff_role'] in roles
-    if settings.KSI_AUTH_PROVIDER['superuser_role'] is not None:
-        user.is_superuser = settings.KSI_AUTH_PROVIDER['superuser_role'] in roles
+    if settings.OIDC_AUTH_PROVIDER['staff_role'] is not None:
+        user.is_staff = settings.OIDC_AUTH_PROVIDER['staff_role'] in roles
+    if settings.OIDC_AUTH_PROVIDER['superuser_role'] is not None:
+        user.is_superuser = settings.OIDC_AUTH_PROVIDER['superuser_role'] in roles
     user.save()
 
-    if settings.KSI_AUTH_PROVIDER['sync_roles_as_groups']:
+    if settings.OIDC_AUTH_PROVIDER['sync_roles_as_groups']:
         with transaction.atomic():
             user.groups.clear()
             for role in roles:
@@ -57,10 +57,10 @@ def refresh_access_token(request: HttpRequest, refresh_token: str):
     sync_roles(request.user, tokens.access_token_roles)
 
 
-def login_with_ksi_backend(request: HttpRequest, tokens: Tokens):
+def login_with_oidc_backend(request: HttpRequest, tokens: Tokens):
     user = authenticate(request, oidc_id_token_claims = tokens.id_token_claims, oidc_roles = tokens.access_token_roles)
     if user is None:
-        raise ImproperlyConfigured("Failed to authenticate user. Is the KsiAuthBackend enabled?")
+        raise ImproperlyConfigured("Failed to authenticate user. Is the `OidcAuthBackend` enabled?")
 
     login(request, user)
     update_session(request, tokens)

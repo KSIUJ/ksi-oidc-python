@@ -12,7 +12,7 @@ logger = logging.getLogger('ksi_oidc_django')
 
 
 def get_login_redirect_uri(request: HttpRequest) -> str:
-    return request.build_absolute_uri(reverse("ksi_auth_callback"))
+    return request.build_absolute_uri(reverse("ksi_oidc_callback"))
 
 
 def get_logout_redirect_uri(request: HttpRequest) -> str:
@@ -29,12 +29,12 @@ def fetch_oidc_client():
         logger.warning("The OidcClient was already fetched with fetch_oidc_client()")
         return
 
-    if not hasattr(settings, "KSI_AUTH_PROVIDER"):
-        logger.warn("The setting KSI_AUTH_PROVIDER was not provided. If KsiAuthBackend is not enabled this is fine")
+    if not hasattr(settings, "OIDC_AUTH_PROVIDER"):
+        logger.warn("The setting OIDC_AUTH_PROVIDER was not provided. If OidcAuthBackend is not enabled this is fine")
         return
 
     oidc_client = OidcClient.load(
-        client_id = settings.KSI_AUTH_PROVIDER['client_id'],
-        client_secret = settings.KSI_AUTH_PROVIDER['client_secret'],
-        issuer = settings.KSI_AUTH_PROVIDER['issuer'],
+        client_id = settings.OIDC_AUTH_PROVIDER['client_id'],
+        client_secret = settings.OIDC_AUTH_PROVIDER['client_secret'],
+        issuer = settings.OIDC_AUTH_PROVIDER['issuer'],
     )

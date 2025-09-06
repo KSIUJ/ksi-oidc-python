@@ -15,8 +15,8 @@ from ksi_oidc_common.errors import OidcProviderError
 
 from ._common import logger, get_login_redirect_uri, get_logout_redirect_uri, oidc_client
 from ._consts import SESSION_TOKENS_SESSION_KEY, STATES_SESSION_KEY
-from ._user_sessions import login_with_ksi_backend
-from .utils import redirect_to_oidc_login, is_ksi_auth_backend_enabled, is_user_authenticated_with_ksi_auth
+from ._user_sessions import login_with_oidc_backend
+from .utils import redirect_to_oidc_login, is_oidc_auth_backend_enabled, is_user_authenticated_with_oidc
 
 
 class OidcLoginView(View):
@@ -26,11 +26,11 @@ class OidcLoginView(View):
     If the user is authenticated, redirects the URL specified in the next query param
     or to `LOGIN_REDIRECT_URL`.
 
-    If `KsiAuthBackend` is not enabled, renders the view specified as `fallback_view`.
+    If `OidcAuthBackend` is enabled, redirects the user directly to the OIDC login page.
+
+    If `OidcAuthBackend` is not enabled, renders the view specified as `fallback_view`.
     The fallback view can be modified when using `.as_view()` like so:
     `OidcLoginView.as_view(fallback_view=some_view)`.
-
-    If `KsiAuthBackend` is enabled, redirects the user directly to the OIDC login page.
 
     The path to this view should be set as the value of the `LOGIN_URL` setting.
     """
@@ -68,7 +68,7 @@ class OidcLoginView(View):
             add_never_cache_headers(response)
             return response
 
-        if not is_ksi_auth_backend_enabled():
+        if not is_oidc_auth_backend_enabled():
             # When the fallback view is used, requests with all methods are passed to it.
             # This might be needed if the fallback login view uses a HTML form with `method="post"`.
             return self.fallback_view(request)
@@ -83,10 +83,10 @@ class OidcLoginView(View):
 
 class CallbackView(View):
     def get(self, request: HttpRequest):
-        if not is_ksi_auth_backend_enabled():
+        if not is_oidc_auth_backend_enabled():
             # It's not this package that triggered the authentication,
             # and authenticating wouldn't be possible anyway without the backend.
-            raise SuspiciousOperation("KsiAuthBackend is not enabled")
+            raise SuspiciousOperation("OidcAuthBackend is not enabled")
 
         authorization_response: Optional[AuthorizationResponse] = None
         try:
@@ -115,7 +115,7 @@ class CallbackView(View):
                 code=authorization_response["code"],
                 expected_nonce=state_entry["nonce"],
             )
-            login_with_ksi_backend(request, tokens)
+            login_with_oidc_backend(request, tokens)
 
         if STATES_SESSION_KEY in request.session:
             del request.session[STATES_SESSION_KEY][state]
@@ -137,13 +137,13 @@ class LogoutView(View):
             id_token_hint = request.session[SESSION_TOKENS_SESSION_KEY]["id_token"]
         except KeyError:
             id_token_hint = None
-        authenticated_with_ksi_auth = is_user_authenticated_with_ksi_auth(request)
+        authenticated_with_oidc = is_user_authenticated_with_oidc(request)
 
         # `logout` also clears the session, so the session is read before calling `logout`.
         logout(request)
 
-        # Skip the OIDC logout if the user didn't use the KSI auth backend to sign in
-        if not authenticated_with_ksi_auth:
+        # Skip the OIDC logout if the user didn't use the `OidcAuthBackend` to sign in
+        if not authenticated_with_oidc:
             return redirect(settings.LOGOUT_REDIRECT_URL)
 
         logout_url = oidc_client.get_logout_url(get_logout_redirect_uri(request), id_token_hint)
