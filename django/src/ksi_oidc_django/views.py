@@ -42,7 +42,6 @@ class OidcLoginView(View):
     fallback_view = staticmethod(DjangoLoginView.as_view())
 
     def __init__(self, fallback_view = None):
-        print("Initializing OidcLoginView with fallback_view = ", fallback_view)
         if fallback_view is not None:
             # `staticmethod` is used to avoid binding the `self` argument from `OidcLoginView`.
             self.fallback_view = staticmethod(fallback_view)

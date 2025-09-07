@@ -2,8 +2,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import BaseBackend
 from django.core.exceptions import SuspiciousOperation
 
+from ._common import logger
 from ._user_sessions import sync_roles
 from .apps import KsiOidcAppConfig
+from .models import KsiOidcUser
 
 
 class OidcAuthBackend(BaseBackend):
@@ -21,7 +23,7 @@ class OidcAuthBackend(BaseBackend):
         self.user_model = get_user_model()
 
 
-    def _find_existing_user(self, oidc_id_token_claims):
+    def _find_existing_user(self, oidc_id_token_claims: dict):
         """
         Finds and returns an existing user stored in the database for the claims in `oidc_id_token_claims`.
 
@@ -29,24 +31,40 @@ class OidcAuthBackend(BaseBackend):
         """
         # The implementation is based on `filter_users_by_claims` in mozilla-django-oidc
 
-        # TODO: Use the user's UUID to try to retrieve them if they have already authenticated with OIDC.
-        #       The email field should be updated in this case!
-        sub_matching_users = self.user_model.objects.none()
-        if len(sub_matching_users) > 1:
-            raise SuspiciousOperation("Multiple users with the same sub found in Django database")
-        if len(sub_matching_users) == 1:
-            return sub_matching_users[0]
+        sub = oidc_id_token_claims["sub"]
+        email = oidc_id_token_claims["email"]
 
-        email_matching_users = self.user_model.objects.filter(email__iexact=oidc_id_token_claims.get("email"))
+        sub_matching_users = self.user_model.objects.filter(ksi_oidc_user__sub=sub)
+        if len(sub_matching_users) > 1:
+            # This should never be possible, because KsiOidcUser.user is a one-to-one field.
+            logger.error(f"Found {len(sub_matching_users)} existing users matching the sub {sub}")
+            raise SuspiciousOperation("Multiple accounts with the same sub found in Django database")
+        if len(sub_matching_users) == 1:
+            user = sub_matching_users[0]
+            logger.debug(f"Found existing user with Django id {user.id} matching the sub {sub}")
+            return user
+
+        email_matching_users = self.user_model.objects.filter(email__iexact=email)
         if len(email_matching_users) > 1:
-            raise SuspiciousOperation("Multiple users with the same email found in Django database")
+            logger.warning(f"Found {len(email_matching_users)} existing users matching the email {email}")
+            raise SuspiciousOperation("Multiple accounts with the same email found in Django database")
         if len(email_matching_users) == 1:
-            return email_matching_users[0]
+            user = email_matching_users[0]
+            logger.debug(f"Found existing user with Django id {user.id} matching the email {email}")
+            if hasattr(user, "ksi_oidc_user"):
+                logger.error(
+                    f"A Django user was found for the OIDC account with sub: {sub} and email: {email}, "
+                    f"but it has been previously linked to the OIDC account with sub: {user.ksi_oidc_user.sub}."
+                )
+                raise SuspiciousOperation(
+                    "An account with this email but a different linked provider acount found in Django database."
+                )
+            return user
 
         return None
 
 
-    def _create_user(self, id_token_claims):
+    def _create_user(self, id_token_claims: dict):
         """
         Creates and returns a new user object with the username and email from `id_token_claims`.
 
@@ -67,7 +85,11 @@ class OidcAuthBackend(BaseBackend):
         user.email = id_token_claims.get('email')
         user.save()
 
-        # TODO: Store the value of the sub claim as an OIDC id.
+        try:
+            user.ksi_oidc_user.sub = id_token_claims["sub"]
+            user.ksi_oidc_user.save()
+        except get_user_model().ksi_oidc_user.RelatedObjectDoesNotExist:
+            KsiOidcUser.objects.create(user=user, sub=id_token_claims["sub"])
 
         sync_roles(user, roles)
 
