@@ -11,7 +11,7 @@ from django.utils.module_loading import import_string
 
 from ksi_oidc_common.errors import OidcProviderError
 
-from ._common import logger, get_login_redirect_uri, get_oidc_client
+from ._common import logger, get_oidc_client
 from ._consts import STATES_SESSION_KEY, SESSION_TOKENS_SESSION_KEY, MIDDLEWARE_APPLIED_KEY, MIDDLEWARE_APPLIED_VALUE
 from ._user_sessions import refresh_access_token
 from .backends import OidcAuthBackend
@@ -107,8 +107,7 @@ def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: boo
     # See https://docs.djangoproject.com/en/5.2/topics/http/sessions/#when-sessions-are-saved
     request.session.modified = True
 
-    redirect_url = get_login_redirect_uri(request)
-    authentication_url = oidc_client.get_authentication_url(redirect_url, nonce, state, prompt_none)
+    authentication_url = oidc_client.get_authentication_url(nonce, state, prompt_none)
     response = redirect(authentication_url)
     add_never_cache_headers(response)
     return response

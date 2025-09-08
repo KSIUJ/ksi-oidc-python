@@ -46,6 +46,8 @@ class OidcClient:
 
     def __init__(
         self,
+        callback_uri: str,
+        post_logout_redirect_uri: str,
         # kwargs can be used when subclassing `OidcClient`
         **_kwargs,
     ):
@@ -53,6 +55,9 @@ class OidcClient:
         This constructor should not be called directly,
         use the OidcClient.load() method instead.
         """
+
+        self.callback_uri = callback_uri
+        self.post_logout_redirect_uri = post_logout_redirect_uri
 
         self.keyjar = KeyJar()
         # The provider configuration will be stored in `_load()`,
@@ -184,13 +189,13 @@ class OidcClient:
         access_token_roles = self._get_roles_from_access_token(response["access_token"])
         return Tokens.from_response(response, access_token_roles)
 
-    def get_authentication_url(self, redirect_uri: str, nonce: str, state: str, prompt_none: bool) -> str:
+    def get_authentication_url(self, nonce: str, state: str, prompt_none: bool) -> str:
         request_args = {
             'client_id': self.client_id,
             'response_type': "code",
             'scope': self.oidc_scope,
             'nonce': nonce,
-            "redirect_uri": redirect_uri,
+            "redirect_uri": self.callback_uri,
             "state": state,
         }
         if prompt_none:
@@ -201,10 +206,10 @@ class OidcClient:
             AuthorizationRequest(**request_args),
         )
 
-    def get_logout_url(self, post_logout_redirect_uri: str, id_token_hint: Optional[str]) -> str:
+    def get_logout_url(self, id_token_hint: Optional[str]) -> str:
         request_args = {
             "id_token_hint": id_token_hint,
-            "post_logout_redirect_uri": post_logout_redirect_uri,
+            "post_logout_redirect_uri": self.post_logout_redirect_uri,
         }
         return self._create_redirect_url(
             self.provider_configuration['end_session_endpoint'],
@@ -216,7 +221,6 @@ class OidcClient:
 
     def exchange_code_for_access_token(
         self,
-        redirect_uri: str,
         code: str,
         expected_nonce: str,
     ) -> Tokens:
@@ -228,7 +232,7 @@ class OidcClient:
             # The OIDC Provider verifies that this `redirect_uri` is the same as the one provided
             # in the `AuthorizationRequest`.
             # It will not be used for any new redirect.
-            'redirect_uri': redirect_uri,
+            'redirect_uri': self.callback_uri,
         }
         response = self._authenticated_post_request(
             AccessTokenResponse,

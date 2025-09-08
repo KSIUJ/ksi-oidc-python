@@ -13,7 +13,7 @@ from oic.oic import AuthorizationResponse
 
 from ksi_oidc_common.errors import OidcProviderError
 
-from ._common import logger, get_login_redirect_uri, get_logout_redirect_uri, get_oidc_client
+from ._common import logger, get_oidc_client
 from ._consts import SESSION_TOKENS_SESSION_KEY, STATES_SESSION_KEY
 from ._user_sessions import login_with_oidc_backend
 from .utils import redirect_to_oidc_login, is_oidc_auth_backend_enabled, is_user_authenticated_with_oidc, \
@@ -115,7 +115,6 @@ class CallbackView(View):
 
         if authorization_response is not None:
             tokens = oidc_client.exchange_code_for_access_token(
-                get_login_redirect_uri(request),
                 code=authorization_response["code"],
                 expected_nonce=state_entry["nonce"],
             )
@@ -151,7 +150,7 @@ class LogoutView(View):
             return redirect(settings.LOGOUT_REDIRECT_URL)
 
         oidc_client = get_oidc_client()
-        logout_url = oidc_client.get_logout_url(get_logout_redirect_uri(request), id_token_hint)
+        logout_url = oidc_client.get_logout_url(id_token_hint)
         response = redirect(logout_url)
         add_never_cache_headers(response)
         return response

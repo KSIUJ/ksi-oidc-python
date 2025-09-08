@@ -64,6 +64,8 @@ In the appropriate Django setting files:
 3. Add `ksi_oidc_django`-specific settings:
  
     ```python 
+    OIDC_APP_BASE_URL = 'https://yourapp.com/'
+   
     # Set user's Django groups to the roles from the access token claims.
     # Note that this will also remove the user from the groups that are not present in the access token.
     OIDC_SYNC_ROLES_AS_GROUPS = False
