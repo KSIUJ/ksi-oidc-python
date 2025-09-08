@@ -167,12 +167,13 @@ class OidcClient:
         url: str,
         request_body: Message,
         auth: Optional[AuthBase] = None,
-        send_json = False,
+        send_json: bool = False,
+        method: str = 'POST'
     ) -> TMessage:
         kwargs = {
             ('json' if send_json else 'data'): request_body.to_dict(),
         }
-        response = requests.post(url, auth=auth, **kwargs)
+        response = requests.request(method, url, auth=auth, **kwargs)
         return self._handle_response(response, success_response_type, error_response_type)
 
     def _create_redirect_url(self, base_url: str, message: TMessage) -> str:
@@ -300,8 +301,8 @@ class OidcClient:
 
     # Methods for OpenId Connect dynamic client registration
 
-    def register(self, registration_access_token: str) -> RegistrationResult:
-        request_args = {
+    def _get_registration_configuration_dict(self) -> dict:
+        return {
             'client_name': 'Gutenberg',
             'logo_uri': self.logo_uri,
             'application_type': 'web',
@@ -315,6 +316,18 @@ class OidcClient:
             'scope': " ".join(set([*self.login_requested_scopes, *self.offline_requested_scopes])),
             # TODO: Add PKCE-specific config
         }
+
+    def register(
+        self,
+        registration_access_token: str,
+    ) -> RegistrationResult:
+        """
+        Register or modify the client using OpenID Connect dynamic client registration.
+        The `registration_client_uri` is used for modyfing the existing client,
+        if `None` is passed a new client is registered instead.
+        """
+
+        request_args = self._get_registration_configuration_dict()
         # TODO: Generate default roles if possible?
         response = self._post_request(
             RegistrationResponse,
@@ -326,11 +339,45 @@ class OidcClient:
         )
         return RegistrationResult.from_response(response)
 
-    def get_registration_info(self, registration_access_token: str, registration_client_uri: str) -> RegistrationResult:
-        response = self._get_request(
+    def _get_registration_info_response(self, registration_access_token: str, registration_client_uri: str) -> RegistrationResponse:
+        return self._get_request(
             RegistrationResponse,
             ClientRegistrationErrorResponse,
             registration_client_uri,
             auth = _BearerAuth(registration_access_token),
+        )
+
+    def get_registration_info(self, registration_access_token: str, registration_client_uri: str) -> RegistrationResult:
+        response = self._get_registration_info_raw(registration_access_token, registration_client_uri)
+        return RegistrationResult.from_response(response)
+
+    def modify_registration(
+        self,
+        registration_access_token: str,
+        registration_client_uri: str,
+        expected_client_id: str,
+    ) -> RegistrationResult:
+        registration_info_response = self._get_registration_info_response(registration_access_token, registration_client_uri)
+        if registration_info_response["client_id"] != expected_client_id:
+            raise OidcValidationError(
+                f"The client ID returned by the OIDC Provider in a dynamic registration request:\n"
+                f"{registration_info_response['client_id']}\n"
+                f"does not match the one configured:\n"
+                f"${expected_client_id}",
+            )
+        modify_request = registration_info_response.copy()
+        modify_request.from_dict(self._get_registration_configuration_dict())
+        modify_request.pop('registration_access_token', None)
+        modify_request.pop('registration_client_uri', None)
+        modify_request.pop('client_secret_expires_at', None)
+        modify_request.pop('client_id_issued_at', None)
+        response = self._post_request(
+            RegistrationResponse,
+            ClientRegistrationErrorResponse,
+            registration_client_uri,
+            request_body = modify_request,
+            auth = _BearerAuth(registration_access_token),
+            send_json = True,
+            method = 'PUT',
         )
         return RegistrationResult.from_response(response)

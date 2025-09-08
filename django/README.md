@@ -15,6 +15,7 @@ This package adds OpenID Connect authentication functionality for Django project
 - Support for disabling the `OidcAuthBackend` in the settings file without requiring other changes to the views
 - Syncing of user groups and staff/superuser status based on the `realm_access.roles` claim in the access token
 - Custom `@ksi_oidc_login_required` and `@ksi_oidc_check_sso` view decorators
+- Automatic client configuration using the OpenID Connect Dynamic Client Registration protocol
 
 ## Notice
 The source code of this library incorporates modified source code from the [mozilla-django-oidc] library.
@@ -67,7 +68,7 @@ In the appropriate Django setting files:
     OIDC_APP_BASE_URL = 'https://yourapp.com/'
    
     # Set user's Django groups to the roles from the access token claims.
-    # Roles from the `realm_access.roles` claim will be saved as a groups with the names `oidc.realm.{group_name}`.
+    # Roles from the `realm_access.roles` claim will be saved as groups with the names `oidc.realm.{group_name}`.
     # Roles from the `resource_access.{client_id}.roles` claim will be saved as `oidc.client.{group_name}`.
     # If the user is in any other group with a name starting with `oidc.`, it will be removed.
     # See https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc_token_role_mappings for more details.
@@ -149,6 +150,34 @@ urlpatterns = [
     to check if the user already has an active SSO session.
 
     The `OIDC_SSO_CHECK_COOLDOWN_SECONDS` setting controls the minimum time between such checks.
+
+## Settings reference
+### `OIDC_APP_BASE_URL`
+The publicly accessible base URL of your application, including the protocol and port,
+for example `https://yourapp.com/`.
+
+### `OIDC_SYNC_ROLES_AS_GROUPS`
+Set user's Django groups to the roles from the access token claims:
+- Roles from the `realm_access.roles` claim will be saved as groups with the names `oidc.realm.{group_name}`.
+- Roles from the `resource_access.{client_id}.roles` claim will be saved as `oidc.client.{group_name}`.
+- If the user is in any other group with a name starting with `oidc.`, it will be removed.
+
+See https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc_token_role_mappings for more details.
+
+### `OIDC_STAFF_ROLE`, `OIDC_SUPERUSER_ROLE`
+Set or unset the User.is_staff and User.is_superuser fields
+if the user's `realm_access.roles` or `resource_access.${client_id}.roles` claims contain the specified role.
+
+The settings are tuples in the form `('realm', role_name)` or `('client', role_name)`.
+Set to `None` to disable this feature.
+
+See https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc_token_role_mappings for more details.
+
+### `OIDC_SSO_CHECK_COOLDOWN_SECONDS`
+The time after a redirect to the OIDC authentication endpoint with `prompt=none`
+when using the `@ksi_oidc_check_sso` decorator during which the user will not be redirected again.
+
+If unspecified, the default value is `300` - 5 minutes.
 
 [`LOGIN_URL`]: https://docs.djangoproject.com/en/5.2/ref/settings/#login-url
 [`LOGOUT_REDIRECT_URL`]: https://docs.djangoproject.com/en/5.2/ref/settings/#logout-redirect-url
