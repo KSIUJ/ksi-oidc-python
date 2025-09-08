@@ -19,22 +19,37 @@ def get_logout_redirect_uri(request: HttpRequest) -> str:
     return request.build_absolute_uri(settings.LOGOUT_REDIRECT_URL)
 
 
-oidc_client: Optional[OidcClient] = None
+_cached_oidc_client: Optional[OidcClient] = None
 
 
-def fetch_oidc_client():
-    global oidc_client
+def get_oidc_client() -> OidcClient:
+    # Avoid circular imports
+    from .models import KsiOidcClientConfig
 
-    if oidc_client is not None:
-        logger.warning("The OidcClient was already fetched with fetch_oidc_client()")
-        return
+    global _cached_oidc_client
 
-    if not hasattr(settings, "OIDC_AUTH_PROVIDER"):
-        logger.warn("The setting OIDC_AUTH_PROVIDER was not provided. If OidcAuthBackend is not enabled this is fine")
-        return
+    if _cached_oidc_client is None:
+        client_config = KsiOidcClientConfig.get_solo()
 
-    oidc_client = OidcClient.load(
-        client_id = settings.OIDC_AUTH_PROVIDER['client_id'],
-        client_secret = settings.OIDC_AUTH_PROVIDER['client_secret'],
-        issuer = settings.OIDC_AUTH_PROVIDER['issuer'],
-    )
+        if client_config.issuer is None:
+            raise ImproperlyConfigured(
+                "The OIDC issuer URL has not been set.\n"
+                "Use the 'manage.py oidc_set_issuer' command to set it."
+            )
+
+        if client_config.client_id is None or client_config.client_secret:
+            raise ImproperlyConfigured(
+                "The OIDC client credentials have not been provided.\n"
+                "Use the 'manage.py oidc_init_dynamic' or 'manage.py oidc_init_static' commands to configure the client."
+            )
+            return
+
+        # Do not set _cached_oidc_client directly to avoid leaving it in a partially initialized state if an exception is raised
+        client = OidcClient.load(issuer = client_config.issuer)
+        client.set_credentials(
+            client_id = client_config.client_id,
+            client_secret = client_config.client_secret,
+        )
+        _cached_oidc_client = client
+
+    return _cached_oidc_client

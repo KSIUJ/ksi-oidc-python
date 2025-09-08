@@ -62,19 +62,11 @@ In the appropriate Django setting files:
     ```
 
 3. Add `ksi_oidc_django`-specific settings:
-
+ 
     ```python
-    OIDC_AUTH_PROVIDER = {
-       # For example https://auth.ksi.ii.uj.edu.pl/auth/realms/KSI
-       # The auth plugin will reach https://auth.ksi.ii.uj.edu.pl/auth/realms/KSI/.well-known/openid-configuration
-       # for configuration discovery
-       'issuer': '######',
-
-       # SECURITY: Do not check these secrets into version control!
-       'client_id': '######',
-       'client_secret': '######',
-   
-       # Set user's Django groups to the roles from the access token claims.
+    # TODO: Use flat config for these
+    OIDC_AUTH_PROVIDER = {   
+        # Set user's Django groups to the roles from the access token claims.
         # Note that this will also remove the user from the groups that are not present in the access token.
         'sync_roles_as_groups': False,
 
@@ -100,6 +92,9 @@ In the appropriate Django setting files:
    
     You can disable the `OidcAuthBackend` without removing the app and middleware.
     The middleware will detect that the backend is not enabled and raise [`MiddlewareNotUsed`].
+
+5. Use the `manage.py oidc_set_issuer` and `manage.py oidc_init_dynamic`/`manage.py oidc_init_static` commands
+    to configure the OpenID Connect client.
 
 ### Views configuration
 Add these entries in your `urls.py`:

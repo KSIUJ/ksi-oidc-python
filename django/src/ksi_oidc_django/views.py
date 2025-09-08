@@ -13,7 +13,7 @@ from oic.oic import AuthorizationResponse
 
 from ksi_oidc_common.errors import OidcProviderError
 
-from ._common import logger, get_login_redirect_uri, get_logout_redirect_uri, oidc_client
+from ._common import logger, get_login_redirect_uri, get_logout_redirect_uri, get_oidc_client
 from ._consts import SESSION_TOKENS_SESSION_KEY, STATES_SESSION_KEY
 from ._user_sessions import login_with_oidc_backend
 from .utils import redirect_to_oidc_login, is_oidc_auth_backend_enabled, is_user_authenticated_with_oidc, \
@@ -89,6 +89,8 @@ class CallbackView(View):
             raise SuspiciousOperation("Received a response from the OIDC provider, but OidcAuthBackend is not enabled")
 
         ensure_middleware_was_applied(request)
+
+        oidc_client = get_oidc_client()
 
         authorization_response: Optional[AuthorizationResponse] = None
         try:

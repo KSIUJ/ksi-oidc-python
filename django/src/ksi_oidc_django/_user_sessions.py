@@ -9,7 +9,7 @@ from django.http import HttpRequest
 
 from ksi_oidc_common.tokens import Tokens
 
-from ._common import oidc_client, logger
+from ._common import get_oidc_client, logger
 from ._consts import SESSION_TOKENS_SESSION_KEY
 
 
@@ -52,6 +52,7 @@ def update_session(request: HttpRequest, tokens: Tokens):
 
 
 def refresh_access_token(request: HttpRequest, refresh_token: str):
+    oidc_client = get_oidc_client()
     tokens = oidc_client.refresh_access_token(refresh_token)
     update_session(request, tokens)
     sync_roles(request.user, tokens.access_token_roles)

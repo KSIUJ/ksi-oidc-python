@@ -2,7 +2,7 @@ from django.apps import AppConfig
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-from ._common import logger, fetch_oidc_client
+from ._common import logger
 
 
 class KsiOidcAppConfig(AppConfig):
@@ -37,6 +37,3 @@ class KsiOidcAppConfig(AppConfig):
 
     def ready(self):
         self.verify_correct_setup()
-
-        # Load the OIDC client configuration
-        fetch_oidc_client()

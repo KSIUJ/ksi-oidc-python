@@ -30,25 +30,22 @@ class OidcClient:
 
     provider_configuration: ProviderConfigurationResponse
 
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+
     @classmethod
-    def load(cls, client_id: str, client_secret: str, issuer: str, **kwargs) -> Self:
+    def load(cls, issuer: str, **kwargs) -> Self:
         """
         Creates a new `OidcClient` instance and fetches the OIDC Provider configuration
         from <issuer>/.well-known/openid-configuration.
         """
 
-        client = cls(
-            client_id=client_id,
-            client_secret=client_secret,
-            **kwargs,
-        )
+        client = cls(**kwargs)
         client._load(issuer)
         return client
 
     def __init__(
         self,
-        client_id: str,
-        client_secret: str,
         # kwargs can be used when subclassing `OidcClient`
         **_kwargs,
     ):
@@ -63,6 +60,7 @@ class OidcClient:
         # is unlikely.
         self.provider_configuration = None # type: ignore
 
+    def set_credentials(self, client_id: str, client_secret: str):
         self.client_id = client_id
         self.client_secret = client_secret
 
