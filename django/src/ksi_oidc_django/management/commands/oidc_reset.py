@@ -5,10 +5,31 @@ from .._input_utils import prompt_yes_no
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        if not prompt_yes_no("Reset OIDC configuration?"):
-            self.stdout.write("Nothing done")
+        config = KsiOidcClientConfig.get_solo()
+
+        if config.client_id is None:
+            self.stdout.write("OIDC client is not configured")
+        elif not prompt_yes_no("Reset OIDC client configuration?"):
+            self.stdout.write("Exiting, nothing changed.")
             return
 
-        KsiOidcClientConfig.get_solo().reset()
-        self.stdout.write("OIDC conifiguration reset")
+        config.client_id = None
+        config.client_secret = None
+        config.configuration_endpoint = None
+        config.registration_token = None
+
+        if config.issuer is None:
+            self.stdout.write("Issuer URI is not configured, exiting.")
+            config.save()
+            return
+
+        self.stdout.write(
+            f"The issuer URI is currently set to:\n"
+            f"{config.issuer}",
+        )
+        if prompt_yes_no("Reset issuer URI?"):
+            config.issuer = None
+
+        config.save()
+        self.stdout.write("Stored configuration, done.")
 

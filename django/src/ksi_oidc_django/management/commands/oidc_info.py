@@ -1,6 +1,7 @@
 from django.core.management import BaseCommand, CommandError
 from ksi_oidc_common.client import OidcClient
 from ksi_oidc_django.models import KsiOidcClientConfig
+from ksi_oidc_django._common import fetch_unauthenticated_client
 
 
 class Command(BaseCommand):
@@ -32,4 +33,9 @@ class Command(BaseCommand):
         self.stdout.write(f"Dynamic registration is enabled.")
         self.stdout.write(f"Config ednpoint:   \t{config.configuration_endpoint}")
         self.stdout.write(f"Registration token:\t***")
+
+        client = fetch_unauthenticated_client(config)
+        client.get_registration_info(config.registration_token, config.configuration_endpoint)
+        self.stdout.write(f"The dynamic registration endpoint and token are valid.")
+
 

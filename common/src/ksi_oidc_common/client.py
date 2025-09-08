@@ -3,20 +3,32 @@ from json import JSONDecodeError
 from typing import Type, TypeVar, Optional, Self
 
 import requests
+from requests.auth import AuthBase, HTTPBasicAuth
 from oic.exception import MessageException
 from oic.extension.token import JWTToken
 from oic.oauth2.message import SchemeError, ErrorResponse
 from oic.oic import EndSessionRequest
 from oic.oic.message import Message, ProviderConfigurationResponse, AuthorizationRequest, AuthorizationResponse, \
-    AuthorizationErrorResponse, AccessTokenResponse, AccessTokenRequest, TokenErrorResponse
+    AuthorizationErrorResponse, AccessTokenResponse, AccessTokenRequest, TokenErrorResponse, RegistrationRequest, \
+    RegistrationResponse, ClientRegistrationErrorResponse
 from oic.utils.keyio import KeyJar
 
 from .errors import OidcProviderError, OidcValidationError, OidcRequestError
 from .tokens import Tokens
+from .registration import RegistrationResult
 
 logger = logging.getLogger("ksi_oidc_common")
 
 TMessage = TypeVar('TMessage', bound=Message)
+
+
+class _BearerAuth(requests.auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
+
+    def __call__(self, request):
+        request.headers["authorization"] = "Bearer " + self.token
+        return request
 
 
 class OidcClient:
@@ -46,8 +58,10 @@ class OidcClient:
 
     def __init__(
         self,
-        callback_uri: str,
-        post_logout_redirect_uri: str,
+        home_uri: Optional[str] = None,
+        logo_uri: Optional[str] = None,
+        callback_uri: Optional[str] = None,
+        post_logout_redirect_uri: Optional[str] = None,
         # kwargs can be used when subclassing `OidcClient`
         **_kwargs,
     ):
@@ -56,6 +70,8 @@ class OidcClient:
         use the OidcClient.load() method instead.
         """
 
+        self.home_uri = home_uri
+        self.logo_uri = logo_uri
         self.callback_uri = callback_uri
         self.post_logout_redirect_uri = post_logout_redirect_uri
 
@@ -66,8 +82,13 @@ class OidcClient:
         self.provider_configuration = None # type: ignore
 
     def set_credentials(self, client_id: str, client_secret: str):
+        if self.callback_uri is None or self.post_logout_redirect_uri is None:
+            raise ValueError("The callback_uri and post_logout_redirect_uri must be set before calling set_credentials")
         self.client_id = client_id
         self.client_secret = client_secret
+
+    def _get_basic_auth(self) -> HTTPBasicAuth:
+        return HTTPBasicAuth(self.client_id, self.client_secret)
 
     def _handle_response(
         self,
@@ -132,18 +153,24 @@ class OidcClient:
         error_response_type: Optional[Type[ErrorResponse]],
         url,
         ignore_scheme_error: bool = False,
+        auth: Optional[AuthBase] = None,
     ) -> TMessage:
-        response = requests.get(url)
+        response = requests.get(url, auth=auth)
         return OidcClient._handle_response(self, response, success_response_type, error_response_type, ignore_scheme_error)
 
-    def _authenticated_post_request(
+    def _post_request(
         self,
         success_response_type: Type[TMessage],
         error_response_type: Optional[Type[ErrorResponse]],
         url: str,
         request_body: Message,
+        auth: Optional[AuthBase] = None,
+        send_json = False,
     ) -> TMessage:
-        response = requests.post(url, data=request_body.to_dict(), auth=(self.client_id, self.client_secret))
+        kwargs = {
+            ('json' if send_json else 'data'): request_body.to_dict(),
+        }
+        response = requests.post(url, auth=auth, **kwargs)
         return self._handle_response(response, success_response_type, error_response_type)
 
     def _create_redirect_url(self, base_url: str, message: TMessage) -> str:
@@ -234,11 +261,12 @@ class OidcClient:
             # It will not be used for any new redirect.
             'redirect_uri': self.callback_uri,
         }
-        response = self._authenticated_post_request(
+        response = self._post_request(
             AccessTokenResponse,
             TokenErrorResponse,
             self.provider_configuration['token_endpoint'],
             AccessTokenRequest(**request_args),
+            auth=self._get_basic_auth()
         )
 
         if expected_nonce != response["id_token"]["nonce"]:
@@ -253,10 +281,11 @@ class OidcClient:
             'grant_type': 'refresh_token',
             'refresh_token': refresh_token,
         }
-        response = self._authenticated_post_request(
+        response = self._post_request(
             AccessTokenResponse,
             TokenErrorResponse,
             self.provider_configuration['token_endpoint'],
             AccessTokenRequest(**request_args),
+            auth=self._get_basic_auth()
         )
         return self._parse_tokens_response(response)

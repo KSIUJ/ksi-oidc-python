@@ -41,11 +41,3 @@ class KsiOidcClientConfig(SingletonModel):
             raise ValueError("KsiOidcProviderConfig: issuer must be set when client_id is set")
 
         super().save(**kwargs)
-
-    def reset(self):
-        self.issuer = None
-        self.client_id = None
-        self.client_secret = None
-        self.configuration_endpoint = None
-        self.registration_token = None
-        self.save()
