@@ -90,6 +90,8 @@ class OidcClient:
         self.client_secret = client_secret
 
     def _get_basic_auth(self) -> HTTPBasicAuth:
+        if self.client_id is None or self.client_secret is None:
+            raise ValueError("The client_id and client_secret must be set before calling _get_basic_auth")
         return HTTPBasicAuth(self.client_id, self.client_secret)
 
     def _handle_response(
@@ -348,7 +350,7 @@ class OidcClient:
         )
 
     def get_registration_info(self, registration_access_token: str, registration_client_uri: str) -> RegistrationResult:
-        response = self._get_registration_info_raw(registration_access_token, registration_client_uri)
+        response = self._get_registration_info_response(registration_access_token, registration_client_uri)
         return RegistrationResult.from_response(response)
 
     def modify_registration(

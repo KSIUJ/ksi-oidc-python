@@ -179,7 +179,7 @@ wheels = [
 
 [[package]]
 name = "ksi-oidc-common"
-version = "0.1.0"
+version = "0.5.1"
 source = { editable = "common" }
 dependencies = [
     { name = "oic" },
@@ -194,7 +194,7 @@ requires-dist = [
 
 [[package]]
 name = "ksi-oidc-django"
-version = "0.3.1"
+version = "0.8.0"
 source = { editable = "django" }
 dependencies = [
     { name = "django" },
