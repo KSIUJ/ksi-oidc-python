@@ -37,7 +37,7 @@ def get_oidc_client() -> OidcClient:
                 "Use the 'manage.py oidc_set_issuer' command to set it."
             )
 
-        if client_config.client_id is None or client_config.client_secret:
+        if client_config.client_id is None or client_config.client_secret is None:
             raise ImproperlyConfigured(
                 "The OIDC client credentials have not been provided.\n"
                 "Use the 'manage.py oidc_init_dynamic' or 'manage.py oidc_init_static' commands to configure the client."

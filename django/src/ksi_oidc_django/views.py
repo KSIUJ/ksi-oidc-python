@@ -150,6 +150,7 @@ class LogoutView(View):
         if not authenticated_with_oidc:
             return redirect(settings.LOGOUT_REDIRECT_URL)
 
+        oidc_client = get_oidc_client()
         logout_url = oidc_client.get_logout_url(get_logout_redirect_uri(request), id_token_hint)
         response = redirect(logout_url)
         add_never_cache_headers(response)

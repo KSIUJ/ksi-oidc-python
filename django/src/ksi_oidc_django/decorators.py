@@ -13,7 +13,7 @@ def ksi_oidc_check_sso(function):
     to check if they have an active SSO session.
 
     After this check, a cookie is set to prevent it from being performed again.
-    The max age of the cookie is configurable via the `OIDC_AUTH_SSO_CHECK_COOLDOWN_SECONDS` setting.
+    The max age of the cookie is configurable via the `OIDC_SSO_CHECK_COOLDOWN_SECONDS` setting.
     """
 
     def should_run_check(request):
@@ -34,7 +34,7 @@ def ksi_oidc_check_sso(function):
 
         if should_run_check(request):
             response = redirect_to_oidc_login(request, request.get_full_path(), prompt_none=True)
-            cooldown_seconds = getattr(settings, 'OIDC_AUTH_SSO_CHECK_COOLDOWN_SECONDS', 300)
+            cooldown_seconds = getattr(settings, 'OIDC_SSO_CHECK_COOLDOWN_SECONDS', 300)
             response.set_cookie(SKIP_SSO_CHECK_COOKIE, max_age=timedelta(seconds=cooldown_seconds))
             return response
 

@@ -20,13 +20,13 @@ def sync_roles(user: User, roles: list[str]):
     will be removed from the user.
     """
 
-    if settings.OIDC_AUTH_PROVIDER['staff_role'] is not None:
-        user.is_staff = settings.OIDC_AUTH_PROVIDER['staff_role'] in roles
-    if settings.OIDC_AUTH_PROVIDER['superuser_role'] is not None:
-        user.is_superuser = settings.OIDC_AUTH_PROVIDER['superuser_role'] in roles
+    if getattr(settings, 'OIDC_STAFF_ROLE', None) is not None:
+        user.is_staff = settings.OIDC_STAFF_ROLE in roles
+    if getattr(settings, 'OIDC_SUPERUSER_ROLE', None) is not None:
+        user.is_superuser = settings.OIDC_SUPERUSER_ROLE in roles
     user.save()
 
-    if settings.OIDC_AUTH_PROVIDER['sync_roles_as_groups']:
+    if getattr(settings, 'OIDC_SYNC_ROLES_AS_GROUPS', False):
         with transaction.atomic():
             user.groups.clear()
             for role in roles:

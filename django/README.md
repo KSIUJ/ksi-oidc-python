@@ -63,20 +63,18 @@ In the appropriate Django setting files:
 
 3. Add `ksi_oidc_django`-specific settings:
  
-    ```python
-    # TODO: Use flat config for these
-    OIDC_AUTH_PROVIDER = {   
-        # Set user's Django groups to the roles from the access token claims.
-        # Note that this will also remove the user from the groups that are not present in the access token.
-        'sync_roles_as_groups': False,
+    ```python 
+    # Set user's Django groups to the roles from the access token claims.
+    # Note that this will also remove the user from the groups that are not present in the access token.
+    OIDC_SYNC_ROLES_AS_GROUPS = False
 
-        # Sets or unsets the User.is_staff and User.is_superuser fields
-        # if the access token contains claims for these roles.
-        # Set to None to disable this feature.
-        'staff_role': 'ksi-admin',
-        'superuser_role': 'ksi-admin',
-    }
-    OIDC_AUTH_SSO_CHECK_COOLDOWN_SECONDS = 300
+    # Sets or unsets the User.is_staff and User.is_superuser fields
+    # if the access token contains claims for these roles.
+    # Set to None to disable this feature.
+    OIDC_STAFF_ROLE = 'ksi-admin'
+    OIDC_SUPERUSER_ROLE = 'ksi-admin'
+    
+    OIDC_SSO_CHECK_COOLDOWN_SECONDS = 300
     ```
 
 4. Add `OidcAuthBackend` to `AUTHENTICATION_BACKENDS`:
@@ -143,7 +141,7 @@ urlpatterns = [
     they will be redirected to the OIDC authentication endpoint with `prompt=none`,
     to check if the user already has an active SSO session.
 
-    The `OIDC_AUTH_SSO_CHECK_COOLDOWN_SECONDS` setting controls the minimum time between such checks.
+    The `OIDC_SSO_CHECK_COOLDOWN_SECONDS` setting controls the minimum time between such checks.
 
 [`LOGIN_URL`]: https://docs.djangoproject.com/en/5.2/ref/settings/#login-url
 [`LOGOUT_REDIRECT_URL`]: https://docs.djangoproject.com/en/5.2/ref/settings/#logout-redirect-url
