@@ -10,7 +10,9 @@ class Command(BaseCommand):
 
     def _register(self, config: KsiOidcClientConfig, client: OidcClient):
         self.stdout.write("Registering a new client")
-        registration_token = prompt_non_empty("Enter the initial registration access token:", secret=True)
+        registration_token = prompt_non_empty(
+            "Enter the initial registration access token:", secret=True
+        )
         result = client.register(registration_token)
 
         config.client_id = result.client_id
@@ -19,11 +21,15 @@ class Command(BaseCommand):
         config.registration_token = result.registration_access_token
         config.save()
 
-        self.stdout.write(f"Successfully registered the client with Client ID: {config.client_id}")
+        self.stdout.write(
+            f"Successfully registered the client with Client ID: {config.client_id}"
+        )
 
     def _is_config_valid(self, config: KsiOidcClientConfig, client: OidcClient) -> bool:
         try:
-            info = client.get_registration_info(config.registration_token, config.configuration_endpoint)
+            info = client.get_registration_info(
+                config.registration_token, config.configuration_endpoint
+            )
         except Exception as e:
             self.stdout.write(f"The configuration endpoint or token are invalid: {e}")
             return False
@@ -41,12 +47,14 @@ class Command(BaseCommand):
     def _update_config(self, config: KsiOidcClientConfig, client: OidcClient):
         if config.configuration_endpoint is None:
             self.stdout.write("Dynamic registration is not configured.")
-            if not prompt_yes_no("Do you want to enable dynamic registration features?"):
+            if not prompt_yes_no(
+                "Do you want to enable dynamic registration features?"
+            ):
                 return
 
             self.stdout.write(
                 "Enter the configuration endpoint specific to your client. It usually starts with:\n"
-                f"{client.provider_configuration["registration_endpoint"]}",
+                f"{client.provider_configuration['registration_endpoint']}",
             )
             self.stdout.write(
                 "If you're using Keycloak as the provider, the endpoint is probably:\n"
@@ -55,23 +63,30 @@ class Command(BaseCommand):
             config.configuration_endpoint = prompt_non_empty("Endpoint:")
 
         self.stdout.write(
-            "Using the configuration endpoint: \n"
-            f"{config.configuration_endpoint}",
+            f"Using the configuration endpoint: \n{config.configuration_endpoint}",
         )
 
         if config.registration_token is not None:
             if self._is_config_valid(config, client):
-                self.stdout.write("The existing dynamic registration token is valid, done.")
-                self.stdout.write("Use the 'manage.py oidc_init_dynamic' command to update the client configuration.")
+                self.stdout.write(
+                    "The existing dynamic registration token is valid, done."
+                )
+                self.stdout.write(
+                    "Use the 'manage.py oidc_init_dynamic' command to update the client configuration."
+                )
                 config.save()
                 return
             config.registration_token = None
 
-        config.registration_token = prompt_non_empty("Enter the registration access token:", secret=True)
+        config.registration_token = prompt_non_empty(
+            "Enter the registration access token:", secret=True
+        )
 
         if self._is_config_valid(config, client):
             self.stdout.write("The registration token is valid, done.")
-            self.stdout.write("Use the 'manage.py oidc_init_dynamic' command to update the client configuration.")
+            self.stdout.write(
+                "Use the 'manage.py oidc_init_dynamic' command to update the client configuration."
+            )
             config.save()
             return
 
@@ -88,7 +103,9 @@ class Command(BaseCommand):
 
         if config.client_id is None:
             self.stdout.write("The Client ID is not set.")
-            if prompt_yes_no("Have you already registered the client with the OIDC Provider?"):
+            if prompt_yes_no(
+                "Have you already registered the client with the OIDC Provider?"
+            ):
                 config.client_id = prompt_non_empty("Enter the Client ID:")
 
         if config.client_id is None:

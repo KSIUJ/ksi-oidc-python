@@ -4,9 +4,9 @@ from ksi_oidc_common.errors import OidcProviderError
 from ksi_oidc_common.registration import RegistrationResult
 from ksi_oidc_django.models import KsiOidcClientConfig
 from ksi_oidc_django._common import fetch_unauthenticated_client
-from oic.oic.message import ProviderConfigurationResponse, ClientRegistrationErrorResponse
-
-from .._input_utils import prompt_non_empty, prompt_yes_no
+from oic.oic.message import (
+    ClientRegistrationErrorResponse,
+)
 
 
 class Command(BaseCommand):
@@ -33,17 +33,22 @@ class Command(BaseCommand):
 
         config.save()
 
-
     def handle(self, *args, **options):
         config = KsiOidcClientConfig.get_solo()
 
         client = fetch_unauthenticated_client(config)
 
         try:
-            info = client.modify_registration(config.registration_token, config.configuration_endpoint, config.client_id)
+            info = client.modify_registration(
+                config.registration_token,
+                config.configuration_endpoint,
+                config.client_id,
+            )
             self._update_config(info, config, client)
         except Exception as e:
-            if isinstance(e, OidcProviderError) and isinstance(e.response, ClientRegistrationErrorResponse):
+            if isinstance(e, OidcProviderError) and isinstance(
+                e.response, ClientRegistrationErrorResponse
+            ):
                 info = RegistrationResult.from_error_response(e.response)
                 self._update_config(info, config, client)
             raise CommandError(f"Failed to update the client configuration: {e}")

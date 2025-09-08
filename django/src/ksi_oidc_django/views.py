@@ -16,8 +16,12 @@ from ksi_oidc_common.errors import OidcProviderError
 from ._common import logger, get_oidc_client
 from ._consts import SESSION_TOKENS_SESSION_KEY, STATES_SESSION_KEY
 from ._user_sessions import login_with_oidc_backend
-from .utils import redirect_to_oidc_login, is_oidc_auth_backend_enabled, is_user_authenticated_with_oidc, \
-    ensure_middleware_was_applied
+from .utils import (
+    redirect_to_oidc_login,
+    is_oidc_auth_backend_enabled,
+    is_user_authenticated_with_oidc,
+    ensure_middleware_was_applied,
+)
 
 
 class OidcLoginView(View):
@@ -41,7 +45,7 @@ class OidcLoginView(View):
     # `OidcLoginView.as_view(fallback_view=some_view)`.
     fallback_view = staticmethod(DjangoLoginView.as_view())
 
-    def __init__(self, fallback_view = None):
+    def __init__(self, fallback_view=None):
         if fallback_view is not None:
             # `staticmethod` is used to avoid binding the `self` argument from `OidcLoginView`.
             self.fallback_view = staticmethod(fallback_view)
@@ -49,21 +53,23 @@ class OidcLoginView(View):
     def _get_next_url(self, request):
         next_url = settings.LOGIN_REDIRECT_URL
 
-        if 'next' in request.GET:
+        if "next" in request.GET:
             next_url_is_valid = url_has_allowed_host_and_scheme(
-                request.GET['next'],
+                request.GET["next"],
                 allowed_hosts=request.get_host(),
                 require_https=request.is_secure(),
             )
             if next_url_is_valid:
-                next_url = request.GET['next']
+                next_url = request.GET["next"]
             else:
-                logger.warning(f"Received an invalid next URL in the login request: {next_url}")
+                logger.warning(
+                    f"Received an invalid next URL in the login request: {next_url}"
+                )
 
         return next_url
 
     def dispatch(self, request):
-        if request.user.is_authenticated and request.method in ('GET', 'HEAD', 'POST'):
+        if request.user.is_authenticated and request.method in ("GET", "HEAD", "POST"):
             response = redirect(self._get_next_url(request))
             add_never_cache_headers(response)
             return response
@@ -74,11 +80,10 @@ class OidcLoginView(View):
             return self.fallback_view(request)
 
         # There is no reason to allow submitting a POST request to the OIDC login endpoint.
-        if request.method not in ('GET', 'HEAD'):
+        if request.method not in ("GET", "HEAD"):
             return self.http_method_not_allowed()
 
         return redirect_to_oidc_login(request, self._get_next_url(request))
-
 
 
 class CallbackView(View):
@@ -86,7 +91,9 @@ class CallbackView(View):
         if not is_oidc_auth_backend_enabled():
             # It's not this package that triggered the authentication,
             # and authenticating wouldn't be possible anyway without the backend.
-            raise SuspiciousOperation("Received a response from the OIDC provider, but OidcAuthBackend is not enabled")
+            raise SuspiciousOperation(
+                "Received a response from the OIDC provider, but OidcAuthBackend is not enabled"
+            )
 
         ensure_middleware_was_applied(request)
 
@@ -94,15 +101,19 @@ class CallbackView(View):
 
         authorization_response: Optional[AuthorizationResponse] = None
         try:
-            authorization_response = oidc_client.parse_authorization_callback_response(request.GET)
-            state = authorization_response['state']
+            authorization_response = oidc_client.parse_authorization_callback_response(
+                request.GET
+            )
+            state = authorization_response["state"]
         except OidcProviderError as error:
             state = error.response["state"]
             if error.response["error"] in ("login_required", "interaction_required"):
-                logger.debug(f"Received error {error.response["error"]} in the CallbackView")
+                logger.debug(
+                    f"Received error {error.response['error']} in the CallbackView"
+                )
             else:
                 logger.warning(
-                    f"Received error {error.response["error"]} in the CallbackView:\n"
+                    f"Received error {error.response['error']} in the CallbackView:\n"
                     f"{error.response.get('error_description', '')}",
                 )
                 # TODO: Handle errors
@@ -112,7 +123,9 @@ class CallbackView(View):
         except KeyError:
             # This message is intended to be shown to the user, the missing session information is not
             # an indication of an attack by itself.
-            raise SuspiciousOperation("Failed to find info necessary to complete authentication in the session")
+            raise SuspiciousOperation(
+                "Failed to find info necessary to complete authentication in the session"
+            )
 
         if authorization_response is not None:
             tokens = oidc_client.exchange_code_for_access_token(
@@ -128,7 +141,7 @@ class CallbackView(View):
             # See https://docs.djangoproject.com/en/5.2/topics/http/sessions/#when-sessions-are-saved
             request.session.modified = True
 
-        response = redirect(state_entry['next_url'])
+        response = redirect(state_entry["next_url"])
         add_never_cache_headers(response)
         return response
 

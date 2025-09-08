@@ -1,4 +1,4 @@
-from django.core.management import BaseCommand, CommandError
+from django.core.management import BaseCommand
 from ksi_oidc_django.models import KsiOidcClientConfig
 from .._input_utils import prompt_yes_no
 
@@ -26,12 +26,10 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(
-            f"The issuer URI is currently set to:\n"
-            f"{config.issuer}",
+            f"The issuer URI is currently set to:\n{config.issuer}",
         )
         if prompt_yes_no("Reset issuer URI?"):
             config.issuer = None
 
         config.save()
         self.stdout.write("Stored configuration, done.")
-

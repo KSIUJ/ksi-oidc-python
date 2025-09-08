@@ -11,7 +11,9 @@ class OidcAuthMiddleware:
         KsiOidcAppConfig.verify_correct_setup()
 
         if not is_oidc_auth_backend_enabled():
-            logger.info("OidcAuthBackend is not enabled, OidcAuthMiddleware will not be used")
+            logger.info(
+                "OidcAuthBackend is not enabled, OidcAuthMiddleware will not be used"
+            )
             raise MiddlewareNotUsed
 
         self.get_response = get_response

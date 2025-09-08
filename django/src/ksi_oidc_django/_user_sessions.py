@@ -1,4 +1,3 @@
-from datetime import datetime, UTC, timedelta
 from typing import Optional
 
 from django.conf import settings
@@ -26,34 +25,40 @@ def sync_roles(user: User, access_token_claims: AccessTokenClaims):
         if setting_value is None:
             return None
         if (
-            not isinstance(setting_value, tuple) or len(setting_value) != 2
-            or setting_value[0] not in ('realm', 'client') or not isinstance(setting_value[1], str)
+            not isinstance(setting_value, tuple)
+            or len(setting_value) != 2
+            or setting_value[0] not in ("realm", "client")
+            or not isinstance(setting_value[1], str)
         ):
-            raise ImproperlyConfigured(f"The {setting_name} setting must be a tuple ('realm', str) or ('client', str)")
+            raise ImproperlyConfigured(
+                f"The {setting_name} setting must be a tuple ('realm', str) or ('client', str)"
+            )
 
         (kind, name) = setting_value
-        if kind == 'realm':
+        if kind == "realm":
             return name in access_token_claims.realm_roles
-        if kind == 'client':
+        if kind == "client":
             return name in access_token_claims.client_roles
         raise ValueError(f"Invalid role type: {kind}")
 
-    has_staff_role = user_has_role('OIDC_STAFF_ROLE')
+    has_staff_role = user_has_role("OIDC_STAFF_ROLE")
     if has_staff_role is not None:
         user.is_staff = has_staff_role
-    has_superuser_role = user_has_role('OIDC_SUPERUSER_ROLE')
+    has_superuser_role = user_has_role("OIDC_SUPERUSER_ROLE")
     if has_superuser_role is not None:
         user.is_superuser = has_superuser_role
 
     user.save()
 
-    if getattr(settings, 'OIDC_SYNC_ROLES_AS_GROUPS', False):
+    if getattr(settings, "OIDC_SYNC_ROLES_AS_GROUPS", False):
         with transaction.atomic():
-            role_names = \
-                [ f"oidc.realm.{role}" for role in access_token_claims.realm_roles ] \
-                + [ f"oidc.client.{role}" for role in access_token_claims.client_roles ]
+            role_names = [
+                f"oidc.realm.{role}" for role in access_token_claims.realm_roles
+            ] + [f"oidc.client.{role}" for role in access_token_claims.client_roles]
 
-            oidc_groups = [ Group.objects.get_or_create(name=name)[0] for name in role_names ]
+            oidc_groups = [
+                Group.objects.get_or_create(name=name)[0] for name in role_names
+            ]
             non_oidc_groups = list(user.groups.exclude(name__startswith="oidc."))
 
             user.groups.set(oidc_groups + non_oidc_groups)
@@ -84,9 +89,15 @@ def refresh_access_token(request: HttpRequest, refresh_token: str):
 
 
 def login_with_oidc_backend(request: HttpRequest, tokens: Tokens):
-    user = authenticate(request, oidc_id_token_claims = tokens.id_token_claims, oidc_access_token_claims = tokens.access_token_claims)
+    user = authenticate(
+        request,
+        oidc_id_token_claims=tokens.id_token_claims,
+        oidc_access_token_claims=tokens.access_token_claims,
+    )
     if user is None:
-        raise ImproperlyConfigured("Failed to authenticate user. Is the `OidcAuthBackend` enabled?")
+        raise ImproperlyConfigured(
+            "Failed to authenticate user. Is the `OidcAuthBackend` enabled?"
+        )
 
     login(request, user)
     update_session(request, tokens)

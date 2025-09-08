@@ -1,5 +1,6 @@
 from getpass import getpass
 
+
 def prompt_yes_no(question):
     while True:
         answer = input(f"{question} [y/n]: ").lower()
@@ -10,7 +11,8 @@ def prompt_yes_no(question):
         else:
             print("Invalid answer. Please answer with 'yes' or 'no'.")
 
-def prompt_non_empty(question, secret = False):
+
+def prompt_non_empty(question, secret=False):
     while True:
         if secret:
             answer = getpass(f"{question} [input is hidden]\n")

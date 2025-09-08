@@ -12,7 +12,12 @@ from django.utils.module_loading import import_string
 from ksi_oidc_common.errors import OidcProviderError
 
 from ._common import logger, get_oidc_client
-from ._consts import STATES_SESSION_KEY, SESSION_TOKENS_SESSION_KEY, MIDDLEWARE_APPLIED_KEY, MIDDLEWARE_APPLIED_VALUE
+from ._consts import (
+    STATES_SESSION_KEY,
+    SESSION_TOKENS_SESSION_KEY,
+    MIDDLEWARE_APPLIED_KEY,
+    MIDDLEWARE_APPLIED_VALUE,
+)
 from ._user_sessions import refresh_access_token
 from .backends import OidcAuthBackend
 
@@ -37,7 +42,10 @@ def is_user_authenticated_with_oidc(request: HttpRequest) -> bool:
     try:
         auth_backend = import_string(backend_session)
     except ImportError:
-        logger.warning("Failed to import auth backend specified in the session at BACKEND_SESSION_KEY. Signing the user out", exc_info=True)
+        logger.warning(
+            "Failed to import auth backend specified in the session at BACKEND_SESSION_KEY. Signing the user out",
+            exc_info=True,
+        )
         logout(request)
         return False
 
@@ -63,7 +71,9 @@ def ensure_middleware_was_applied(request: HttpRequest):
         )
 
 
-def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: bool = False) -> HttpResponse:
+def redirect_to_oidc_login(
+    request: HttpRequest, next_url: str, prompt_none: bool = False
+) -> HttpResponse:
     """
     Redirects to the OIDC login page if the `OidcAuthBackend` is enabled or to the `LOGIN_URL` otherwise.
 
@@ -97,8 +107,8 @@ def redirect_to_oidc_login(request: HttpRequest, next_url: str, prompt_none: boo
     states = request.session.get(STATES_SESSION_KEY, {})
     # TODO: mozilla-django-oidc limits the number of stored states, we could do it too
     states[state] = {
-        'nonce': nonce,
-        'next_url': next_url,
+        "nonce": nonce,
+        "next_url": next_url,
     }
     request.session[STATES_SESSION_KEY] = states
     # Previously, the session was not saved when modifying nested dicts in the session object.
@@ -132,20 +142,29 @@ def refresh_oidc_auth_session(request: HttpRequest):
     try:
         session_tokens = request.session[SESSION_TOKENS_SESSION_KEY]
     except KeyError:
-        logger.error("Failed to access SESSION_TOKENS_SESSION_KEY for a user. Signing the user out.")
+        logger.error(
+            "Failed to access SESSION_TOKENS_SESSION_KEY for a user. Signing the user out."
+        )
         logout(request)
         return
 
-    if datetime.fromisoformat(session_tokens["access_expires_at"]) > datetime.now(UTC) + timedelta(seconds = 5):
+    if datetime.fromisoformat(session_tokens["access_expires_at"]) > datetime.now(
+        UTC
+    ) + timedelta(seconds=5):
         # The access token is still valid and will be valid for at least 5 more seconds
         return
 
-    logger.debug("The access token for user %s has expired, refreshing", request.user.username)
+    logger.debug(
+        "The access token for user %s has expired, refreshing", request.user.username
+    )
     try:
         refresh_access_token(request, session_tokens["refresh_token"])
         logger.info("Refreshed expired access token for user %s", request.user.username)
     except Exception as error:
-        if isinstance(error, OidcProviderError) and error.response["error"] == "invalid_grant":
+        if (
+            isinstance(error, OidcProviderError)
+            and error.response["error"] == "invalid_grant"
+        ):
             # This is an expected case, there is no need to raise an error here
             logger.info("Refresh token for user %s has expired, signing them out")
             logout(request)
@@ -153,6 +172,10 @@ def refresh_oidc_auth_session(request: HttpRequest):
 
         # If anything went wrong, the user should be signed out,
         # since they no longer have a valid access token.
-        logger.error("Failed to refresh access token for user %s, signing them out", request.user.username, exc_info=True)
+        logger.error(
+            "Failed to refresh access token for user %s, signing them out",
+            request.user.username,
+            exc_info=True,
+        )
         logout(request)
         raise

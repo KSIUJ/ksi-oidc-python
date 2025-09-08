@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, UTC, timedelta
-from typing import Self, Optional
+from typing import Optional
 
-from oic.extension.token import JWTToken
 from oic.oic import AccessTokenResponse
 
 
@@ -51,12 +50,9 @@ class Tokens:
             access_token=response["access_token"],
             refresh_token=response["refresh_token"],
             id_token=response["id_token_jwt"],
-
             id_token_claims=response["id_token"],
             access_token_claims=access_token_claims,
-
             access_expires_at=access_expires_at,
             refresh_expires_at=refresh_expires_at,
-
             raw_response=response,
         )

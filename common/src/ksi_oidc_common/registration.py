@@ -25,7 +25,9 @@ class RegistrationResult:
         )
 
     @staticmethod
-    def from_error_response(response: ClientRegistrationErrorResponse) -> "RegistrationResult":
+    def from_error_response(
+        response: ClientRegistrationErrorResponse,
+    ) -> "RegistrationResult":
         return RegistrationResult(
             client_id=response.get("client_id", None),
             client_secret=response.get("client_secret", None),
