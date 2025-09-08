@@ -67,14 +67,19 @@ In the appropriate Django setting files:
     OIDC_APP_BASE_URL = 'https://yourapp.com/'
    
     # Set user's Django groups to the roles from the access token claims.
-    # Note that this will also remove the user from the groups that are not present in the access token.
-    OIDC_SYNC_ROLES_AS_GROUPS = False
-
+    # Roles from the `realm_access.roles` claim will be saved as a groups with the names `oidc.realm.{group_name}`.
+    # Roles from the `resource_access.{client_id}.roles` claim will be saved as `oidc.client.{group_name}`.
+    # If the user is in any other group with a name starting with `oidc.`, it will be removed.
+    # See https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc_token_role_mappings for more details.
+    OIDC_SYNC_ROLES_AS_GROUPS = True
+    
     # Sets or unsets the User.is_staff and User.is_superuser fields
-    # if the access token contains claims for these roles.
+    # if the user's `realm_access.roles` or `resource_access.${client_id}.roles` claims contain the specified role.
+    # The settings are tuples in the form `('realm', role_name)` or `('client', role_name)`.
     # Set to None to disable this feature.
-    OIDC_STAFF_ROLE = 'ksi-admin'
-    OIDC_SUPERUSER_ROLE = 'ksi-admin'
+    # See https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc_token_role_mappings for more details.
+    OIDC_STAFF_ROLE = ('client', 'gutenberg-staff')
+    OIDC_SUPERUSER_ROLE = ('client', 'gutenberg-superuser')
     
     OIDC_SSO_CHECK_COOLDOWN_SECONDS = 300
     ```

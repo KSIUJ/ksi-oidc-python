@@ -19,8 +19,21 @@ def fetch_unauthenticated_client(client_config: "ksi_oidc_django.models.KsiOidcC
             "Use the 'manage.py oidc_set_issuer' command to set it."
         )
 
+    # The `email` and `profile` scopes are used for updating the Django User model upon login
+    login_requested_scopes = ["email", "profile"]
+
+    # These features require the Keycloak `roles` scope
+    # which provides the `realm_access.roles` and `resource_access.${client_id}.roles` scopes
+    role_mapping_used = getattr(settings, 'OIDC_STAFF_ROLE', None) is not None \
+        or getattr(settings, 'OIDC_SUPERUSER_ROLE', None) is not None \
+        or getattr(settings, 'OIDC_SYNC_ROLES_AS_GROUPS', False)
+    if role_mapping_used:
+        login_requested_scopes.append("roles")
+
     return OidcClient.load(
         issuer = client_config.issuer,
+        login_requested_scopes = login_requested_scopes,
+        offline_requested_scopes = ["offline_access"],
         home_uri = settings.OIDC_APP_BASE_URL,
         # TODO: add logo URI
         callback_uri = urljoin(settings.OIDC_APP_BASE_URL, reverse("ksi_oidc_callback")),

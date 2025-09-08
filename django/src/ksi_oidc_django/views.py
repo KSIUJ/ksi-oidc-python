@@ -104,7 +104,8 @@ class CallbackView(View):
                 logger.warning(
                     f"Received error {error.response["error"]} in the CallbackView:\n"
                     f"{error.response.get('error_description', '')}",
-               )
+                )
+                # TODO: Handle errors
 
         try:
             state_entry = request.session.get(STATES_SESSION_KEY, {})[state]

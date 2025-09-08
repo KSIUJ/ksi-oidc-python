@@ -14,7 +14,7 @@ from oic.oic.message import Message, ProviderConfigurationResponse, Authorizatio
 from oic.utils.keyio import KeyJar
 
 from .errors import OidcProviderError, OidcValidationError, OidcRequestError
-from .tokens import Tokens
+from .tokens import Tokens, AccessTokenClaims
 from .registration import RegistrationResult
 
 logger = logging.getLogger("ksi_oidc_common")
@@ -38,15 +38,6 @@ class OidcClient:
     Create new instances using the `OidcClient.load()` method.
     """
 
-    login_requested_scoped = [
-        # The "email" and "profile" scopes are used for updating the Django User model upon login
-        'email',
-        'profile',
-    ]
-    offline_requested_scopes = [
-        'offline_access',
-    ]
-
     provider_configuration: ProviderConfigurationResponse
 
     client_id: Optional[str] = None
@@ -65,6 +56,8 @@ class OidcClient:
 
     def __init__(
         self,
+        login_requested_scopes: list[str],
+        offline_requested_scopes: list[str],
         home_uri: Optional[str] = None,
         logo_uri: Optional[str] = None,
         callback_uri: Optional[str] = None,
@@ -77,6 +70,8 @@ class OidcClient:
         use the OidcClient.load() method instead.
         """
 
+        self.login_requested_scopes = login_requested_scopes
+        self.offline_requested_scopes = offline_requested_scopes
         self.home_uri = home_uri
         self.logo_uri = logo_uri
         self.callback_uri = callback_uri
@@ -211,23 +206,28 @@ class OidcClient:
         self._load_jwks_keys()
         logger.info("Fetched OIDC Provider configuration from %s", config_url)
 
-    def _get_roles_from_access_token(self, access_token: str) -> list[str]:
+    def _unpack_access_token(self, access_token: str) -> AccessTokenClaims:
         jwt = JWTToken(
             typ='A', # Access token
             keyjar=self.keyjar,
         )
         result = jwt.unpack(access_token)
-        return result.get("realm_access", {}).get("roles", [])
+
+        return AccessTokenClaims(
+            # See https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc_token_role_mappings
+            realm_roles = result.get("realm_access", {}).get("roles", []),
+            client_roles = result.get("resource_access", {}).get(self.client_id, {}).get("roles", []),
+        )
 
     def _parse_tokens_response(self, response: AccessTokenResponse) -> Tokens:
-        access_token_roles = self._get_roles_from_access_token(response["access_token"])
-        return Tokens.from_response(response, access_token_roles)
+        access_token_claims = self._unpack_access_token(response["access_token"])
+        return Tokens.from_response(response, access_token_claims)
 
     def get_authentication_url(self, nonce: str, state: str, prompt_none: bool) -> str:
         request_args = {
             'client_id': self.client_id,
             'response_type': "code",
-            'scope': " ".join(set([*self.login_requested_scoped, "openid"])),
+            'scope': " ".join(set([*self.login_requested_scopes, "openid"])),
             'nonce': nonce,
             "redirect_uri": self.callback_uri,
             "state": state,
@@ -312,7 +312,7 @@ class OidcClient:
             'response_types': ['code'],
             'grant_types': ['authorization_code', 'refresh_token'],
             'token_endpoint_auth_method': 'client_secret_basic',
-            'scope': " ".join(set([*self.login_requested_scoped, *self.offline_requested_scopes])),
+            'scope': " ".join(set([*self.login_requested_scopes, *self.offline_requested_scopes])),
             # TODO: Add PKCE-specific config
         }
         # TODO: Generate default roles if possible?

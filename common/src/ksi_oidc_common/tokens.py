@@ -7,13 +7,19 @@ from oic.oic import AccessTokenResponse
 
 
 @dataclass
+class AccessTokenClaims:
+    realm_roles: list[str]
+    client_roles: list[str]
+
+
+@dataclass
 class Tokens:
     access_token: str
     refresh_token: str
     id_token: str
 
     id_token_claims: dict
-    access_token_roles: list[str]
+    access_token_claims: AccessTokenClaims
 
     access_expires_at: datetime
     refresh_expires_at: datetime
@@ -23,7 +29,7 @@ class Tokens:
     @staticmethod
     def from_response(
         response: AccessTokenResponse,
-        access_token_roles: list[str],
+        access_token_claims: AccessTokenClaims,
         request_time: Optional[datetime] = None,
     ) -> "Tokens":
         # The default argument value cannot be used for this,
@@ -47,7 +53,7 @@ class Tokens:
             id_token=response["id_token_jwt"],
 
             id_token_claims=response["id_token"],
-            access_token_roles=access_token_roles,
+            access_token_claims=access_token_claims,
 
             access_expires_at=access_expires_at,
             refresh_expires_at=refresh_expires_at,

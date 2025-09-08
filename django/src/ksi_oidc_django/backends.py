@@ -79,7 +79,7 @@ class OidcAuthBackend(BaseBackend):
 
 
     @staticmethod
-    def _update_user(user, id_token_claims, roles):
+    def _update_user(user, id_token_claims, access_token_claims):
         user.first_name = id_token_claims.get('given_name', '')
         user.last_name = id_token_claims.get('family_name', '')
         user.email = id_token_claims.get('email')
@@ -91,18 +91,18 @@ class OidcAuthBackend(BaseBackend):
         except get_user_model().ksi_oidc_user.RelatedObjectDoesNotExist:
             KsiOidcUser.objects.create(user=user, sub=id_token_claims["sub"])
 
-        sync_roles(user, roles)
+        sync_roles(user, access_token_claims)
 
 
-    def authenticate(self, request, oidc_id_token_claims = None, oidc_roles = None):
-        if oidc_id_token_claims is None or oidc_roles is None:
+    def authenticate(self, request, oidc_id_token_claims = None, oidc_access_token_claims = None):
+        if oidc_id_token_claims is None or oidc_access_token_claims is None:
             return None
 
         user = self._find_existing_user(oidc_id_token_claims)
         if user is None:
             user = self._create_user(oidc_id_token_claims)
 
-        self._update_user(user, oidc_id_token_claims, oidc_roles)
+        self._update_user(user, oidc_id_token_claims, oidc_access_token_claims)
         return user
 
 
