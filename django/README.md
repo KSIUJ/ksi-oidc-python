@@ -79,8 +79,8 @@ In the appropriate Django setting files:
     # The settings are tuples in the form `('realm', role_name)` or `('client', role_name)`.
     # Set to None to disable this feature.
     # See https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc_token_role_mappings for more details.
-    OIDC_STAFF_ROLE = ('client', 'gutenberg-staff')
-    OIDC_SUPERUSER_ROLE = ('client', 'gutenberg-superuser')
+    OIDC_STAFF_ROLE = ('client', 'my-app-staff')
+    OIDC_SUPERUSER_ROLE = ('client', 'my-app-superuser')
     
     OIDC_SSO_CHECK_COOLDOWN_SECONDS = 300
     ```

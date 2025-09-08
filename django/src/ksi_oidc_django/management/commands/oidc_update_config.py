@@ -10,7 +10,7 @@ from oic.oic.message import (
 
 
 class Command(BaseCommand):
-    help = "Modify the OIDC client configuration using dynamic registration to use the Gutenberg default settings."
+    help = "Modify the OIDC client configuration using dynamic registration to use the default settings."
 
     def _update_config(
         self,
