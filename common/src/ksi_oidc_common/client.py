@@ -38,7 +38,14 @@ class OidcClient:
     Create new instances using the `OidcClient.load()` method.
     """
 
-    oidc_scope = "openid email"
+    login_requested_scoped = [
+        # The "email" and "profile" scopes are used for updating the Django User model upon login
+        'email',
+        'profile',
+    ]
+    offline_requested_scopes = [
+        'offline_access',
+    ]
 
     provider_configuration: ProviderConfigurationResponse
 
@@ -97,18 +104,18 @@ class OidcClient:
         error_response_type: Optional[Type[ErrorResponse]],
         ignore_scheme_error: bool = False,
     ) -> TMessage:
-        if not response.ok and error_response_type is not None:
-            try:
-                error_message = error_response_type()
-                error_message.from_dict(response.json())
-                error_message.verify(keyjar=self.keyjar)
-                raise OidcProviderError(error_message)
-            except (MessageException, JSONDecodeError):
-                # These errors should lead to calling raise_for_status()
-                # Other errors are unexpected and are passed to the caller.
-                pass
-
-        response.raise_for_status()
+        if not response.ok:
+            if error_response_type is not None:
+                try:
+                    error_message = error_response_type()
+                    error_message.from_dict(response.json())
+                    error_message.verify(keyjar=self.keyjar)
+                    raise OidcProviderError(error_message)
+                except (MessageException, JSONDecodeError) as e:
+                    # These errors should lead to raising OidcRequestError
+                    # Other errors are unexpected and are passed to the caller.
+                    pass
+            raise OidcRequestError(f"Received an invalid error response from the OIDC Provider:\n{response.text}")
 
         message = success_response_type()
         message.from_dict(response.json())
@@ -137,7 +144,7 @@ class OidcClient:
                 error_response.verify(keyjar=self.keyjar)
                 raise OidcProviderError(error_response)
             except (MessageException, KeyError):
-                raise OidcRequestError("Received an invalid error response from the OIDC Provider")
+                raise OidcRequestError(f"Received an invalid error response from the OIDC Provider: {query_params}")
 
         try:
             response = success_response_type()
@@ -220,7 +227,7 @@ class OidcClient:
         request_args = {
             'client_id': self.client_id,
             'response_type': "code",
-            'scope': self.oidc_scope,
+            'scope': " ".join(set([*self.login_requested_scoped, "openid"])),
             'nonce': nonce,
             "redirect_uri": self.callback_uri,
             "state": state,
@@ -289,3 +296,41 @@ class OidcClient:
             auth=self._get_basic_auth()
         )
         return self._parse_tokens_response(response)
+
+
+    # Methods for OpenId Connect dynamic client registration
+
+    def register(self, registration_access_token: str) -> RegistrationResult:
+        request_args = {
+            'client_name': 'Gutenberg',
+            'logo_uri': self.logo_uri,
+            'application_type': 'web',
+            'client_uri': self.home_uri,
+
+            'redirect_uris': [self.callback_uri],
+            'post_logout_redirect_uris': [self.post_logout_redirect_uri],
+            'response_types': ['code'],
+            'grant_types': ['authorization_code', 'refresh_token'],
+            'token_endpoint_auth_method': 'client_secret_basic',
+            'scope': " ".join(set([*self.login_requested_scoped, *self.offline_requested_scopes])),
+            # TODO: Add PKCE-specific config
+        }
+        # TODO: Generate default roles if possible?
+        response = self._post_request(
+            RegistrationResponse,
+            ClientRegistrationErrorResponse,
+            self.provider_configuration['registration_endpoint'],
+            request_body = RegistrationRequest(**request_args),
+            auth = _BearerAuth(registration_access_token),
+            send_json = True,
+        )
+        return RegistrationResult.from_response(response)
+
+    def get_registration_info(self, registration_access_token: str, registration_client_uri: str) -> RegistrationResult:
+        response = self._get_request(
+            RegistrationResponse,
+            ClientRegistrationErrorResponse,
+            registration_client_uri,
+            auth = _BearerAuth(registration_access_token),
+        )
+        return RegistrationResult.from_response(response)
