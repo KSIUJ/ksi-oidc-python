@@ -61,7 +61,8 @@ class Command(BaseCommand):
 
         if config.registration_token is not None:
             if self._is_config_valid(config, client):
-                self.stdout.write("The existing dynamic registration token is valid, done")
+                self.stdout.write("The existing dynamic registration token is valid, done.")
+                self.stdout.write("Use the 'manage.py oidc_init_dynamic' command to update the client configuration.")
                 config.save()
                 return
             config.registration_token = None
@@ -69,7 +70,8 @@ class Command(BaseCommand):
         config.registration_token = prompt_non_empty("Enter the registration access token:", secret=True)
 
         if self._is_config_valid(config, client):
-            self.stdout.write("The registration token is valid, done")
+            self.stdout.write("The registration token is valid, done.")
+            self.stdout.write("Use the 'manage.py oidc_init_dynamic' command to update the client configuration.")
             config.save()
             return
 
