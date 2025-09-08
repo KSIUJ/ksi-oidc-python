@@ -4,6 +4,8 @@ from .._input_utils import prompt_non_empty, prompt_yes_no
 
 
 class Command(BaseCommand):
+    help = "Register a new OIDC client using a provided Client ID and Client Secret."
+
     def handle(self, *args, **options):
         config = KsiOidcClientConfig.get_solo()
         if config.issuer is None:

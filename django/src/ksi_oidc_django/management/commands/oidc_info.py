@@ -5,6 +5,8 @@ from ksi_oidc_django._common import fetch_unauthenticated_client
 
 
 class Command(BaseCommand):
+    help = "Displays information about the current OIDC configuration. If dynamic registration is enabled it also checks if the credentials are valid."
+
     def handle(self, *args, **options):
         config = KsiOidcClientConfig.get_solo()
 

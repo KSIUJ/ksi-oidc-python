@@ -4,6 +4,8 @@ from ksi_oidc_django.models import KsiOidcClientConfig
 
 
 class Command(BaseCommand):
+    help = "Set the OIDC issuer URI."
+
     def handle(self, *args, **options):
         config = KsiOidcClientConfig.get_solo()
         if config.issuer is not None:

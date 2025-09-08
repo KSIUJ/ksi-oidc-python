@@ -4,6 +4,8 @@ from .._input_utils import prompt_yes_no
 
 
 class Command(BaseCommand):
+    help = "Reset the OIDC client configuration."
+
     def handle(self, *args, **options):
         config = KsiOidcClientConfig.get_solo()
 

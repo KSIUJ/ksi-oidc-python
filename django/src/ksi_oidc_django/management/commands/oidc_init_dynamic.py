@@ -6,6 +6,8 @@ from .._input_utils import prompt_non_empty, prompt_yes_no
 
 
 class Command(BaseCommand):
+    help = "Register a new OIDC client using dynamic registration or enable dynamic registration for an existing client."
+
     def _register(self, config: KsiOidcClientConfig, client: OidcClient):
         self.stdout.write("Registering a new client")
         registration_token = prompt_non_empty("Enter the initial registration access token:", secret=True)
