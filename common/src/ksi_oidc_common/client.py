@@ -345,9 +345,8 @@ class OidcClient:
     # Methods for OpenId Connect dynamic client registration
 
     def _get_registration_configuration_dict(self) -> dict:
-        return {
+        configuration = {
             "client_name": "Gutenberg",
-            "logo_uri": self.logo_uri,
             "application_type": "web",
             "client_uri": self.home_uri,
             "redirect_uris": [self.callback_uri],
@@ -360,6 +359,9 @@ class OidcClient:
             ),
             # TODO: Add PKCE-specific config
         }
+        if self.logo_uri is not None:
+            configuration["logo_uri"] = self.logo_uri
+        return configuration
 
     def register(
         self,
@@ -367,8 +369,8 @@ class OidcClient:
     ) -> RegistrationResult:
         """
         Register or modify the client using OpenID Connect dynamic client registration.
-        The `registration_client_uri` is used for modyfing the existing client,
-        if `None` is passed a new client is registered instead.
+        The `registration_client_uri` is used for modifying the existing client,
+        if `None` is passed, a new client is registered instead.
         """
 
         request_args = self._get_registration_configuration_dict()
