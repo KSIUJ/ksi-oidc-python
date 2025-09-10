@@ -5,7 +5,7 @@ from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView as DjangoLoginView
 from django.core.exceptions import SuspiciousOperation
 from django.shortcuts import redirect, render
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
 from django.utils.cache import add_never_cache_headers
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -158,11 +158,11 @@ class CallbackView(View):
                     # These errors are expected when `prompt=none` is used, they just indicate
                     # that the user must sign in.
                     logger.debug(
-                        f"Received error {error.response['error']} in the CallbackView"
+                        f"Received error {error.response['error']} in the CallbackView when using `prompt=none`"
                     )
                 else:
                     logger.error(
-                        f"Received error {error.response['error']} in the CallbackView:\n"
+                        f"Received error {error.response['error']} in the CallbackView when using `prompt=none`:\n"
                         f"Description: {error.response.get('error_description')}",
                     )
                 # Always silently return to the next page if the redirect used `prompt=none`
