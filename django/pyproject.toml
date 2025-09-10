@@ -2,7 +2,7 @@
 name = "ksi-oidc-django"
 description = "The OpenID Connect plugin Django created by KSIUJ"
 requires-python = ">=3.13.0"
-version = "1.0.0-beta.1"
+version = "1.0.0"
 authors = [
     { name = "dominik-korsa" }
 ]
