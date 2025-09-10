@@ -66,8 +66,8 @@ class OidcClient:
 
     def __init__(
         self,
-        login_requested_scopes: list[str],
-        offline_requested_scopes: list[str],
+        login_requested_scopes: Optional[list[str]] = None,
+        offline_requested_scopes: Optional[list[str]] = None,
         home_uri: Optional[str] = None,
         logo_uri: Optional[str] = None,
         callback_uri: Optional[str] = None,

@@ -72,7 +72,7 @@ class Command(BaseCommand):
                     "The existing dynamic registration token is valid, done."
                 )
                 self.stdout.write(
-                    "Use the 'manage.py oidc_init_dynamic' command to update the client configuration."
+                    "Use the 'manage.py oidc_update_config' command to update the client configuration."
                 )
                 config.save()
                 return
@@ -85,7 +85,7 @@ class Command(BaseCommand):
         if self._is_config_valid(config, client):
             self.stdout.write("The registration token is valid, done.")
             self.stdout.write(
-                "Use the 'manage.py oidc_init_dynamic' command to update the client configuration."
+                "Use the 'manage.py oidc_update_config' command to update the client configuration."
             )
             config.save()
             return

@@ -109,6 +109,7 @@ def redirect_to_oidc_login(
     states[state] = {
         "nonce": nonce,
         "next_url": next_url,
+        "prompt_none": prompt_none,
     }
     request.session[STATES_SESSION_KEY] = states
     # Previously, the session was not saved when modifying nested dicts in the session object.
