@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView as DjangoLoginView
 from django.core.exceptions import SuspiciousOperation
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.http import HttpRequest, HttpResponse
 from django.utils.cache import add_never_cache_headers
 from django.utils.decorators import method_decorator
@@ -92,13 +92,34 @@ class OidcLoginView(View):
 # from caching the success redirect.
 @method_decorator(never_cache, name="dispatch")
 class CallbackView(View):
-    def _display_login_error(self, description: Optional[str] = None):
-        description = description or "Authentication failed"
-        # TODO: Replace with a customizable template
-        body = f"<h1>Login failed</h1><p>{description}</p>"
-        return HttpResponse(body, status=500)
+    """
+    This view handles the authentication callback from the OIDC provider.
 
-    def _pop_state_entry(self, request, state) -> Optional[dict]:
+    If you are not using the default `urlpatterns` to declare the path for this view,
+    make sure to name the path `ksi_oidc_callback`, as the name is used internally.
+
+    If an error occurs during authentication, the user is usually not redirected to
+    the next url, as that might lead to a redirect loop.
+    This does not apply to authentication `prompt=none`, in this case errors are
+    ignored, and the user always gets redirected to the next url.
+
+    The login errors are rendered using the `ksi_oidc_django/callback_error.html` template.
+    You can override the template or subclass this view to customize the error handling.
+    """
+
+    # This method is designed to be overridden by subclasses, ignore the "unused `self`" warning.
+    # The kwargs are unused here, but subclasses should have the `**kwargs` argument to allow adding more
+    # template details in the future without making it a breaking change.
+    # noinspection PyMethodMayBeStatic
+    def display_login_error(self, request, description: Optional[str] = None, **kwargs):
+        description = description or "An unexpected error occurred during authentication."
+        context = {
+            "error_description": description,
+        }
+        return render(request, "ksi_oidc_django/callback_error.html", context, status=500)
+
+    @staticmethod
+    def _pop_state_entry(request, state) -> Optional[dict]:
         if STATES_SESSION_KEY not in request.session:
             return None
         state_entry = request.session[STATES_SESSION_KEY].pop(state, None)
@@ -151,21 +172,22 @@ class CallbackView(View):
                 f"Received error {error.response['error']} in the CallbackView:\n"
                 f"Description: {error.response.get('error_description')}",
             )
-            return self._display_login_error(error.response.get('error_description'))
+            return self.display_login_error(request, error.response.get('error_description'))
         except OidcError as error:
             logger.error(
                 f"Got an error in the CallbackView:",
                 exc_info=error,
             )
-            return self._display_login_error("Authentication failed")
+            return self.display_login_error(request)
 
         state_entry = self._pop_state_entry(request, authorization_response["state"])
         if state_entry is None:
             # This message is intended to be shown to the user, the missing session information is not
             # an indication of an attack by itself.
-            return self._display_login_error(
+            return self.display_login_error(
+                request,
                 "Failed to get session info necessary to complete authentication in the session.\n"
-                "Make sure to enable cookies for this app before retrying"
+                "Make sure to enable cookies for this app before retrying."
             )
 
         try:
@@ -179,19 +201,27 @@ class CallbackView(View):
                 f"Error code {error.response.get('error')}, message:\n",
                 f"Description: {error.response.get('error_description')}",
             )
-            return self._display_login_error(error.response.get('error_description'))
+            return self.display_login_error(request, error.response.get('error_description'))
         except OidcError as error:
             logger.error(
                 f"Got an error in the CallbackView when exchanging code for access token:",
                 exc_info=error,
             )
-            return self._display_login_error("Authentication failed")
+            return self.display_login_error(request)
 
         login_with_oidc_backend(request, tokens)
         return redirect(state_entry["next_url"])
 
 
-class LogoutView(View):
+class OidcLogoutView(View):
+    """
+    This view logs out the user from Django. If they are signed in using OIDC,
+    it also logs them out from the OIDC provider.
+
+    After the logout is complete, the user gets redirected to the path specified
+    in the `LOGOUT_REDIRECT_URL` setting.
+    """
+
     # Only POST is allowed and CSRF protection is not disabled to avoid CSRF redirects
     # from signing the user out from this app and the OIDC identity provider.
     def post(self, request):
