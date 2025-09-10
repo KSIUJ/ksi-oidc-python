@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand, CommandError
-from ksi_oidc_common.client import OidcClient
 from ksi_oidc_common.errors import OidcProviderError
 from ksi_oidc_common.registration import RegistrationResult
 from ksi_oidc_django.models import KsiOidcClientConfig
@@ -16,11 +15,10 @@ class Command(BaseCommand):
         self,
         info: RegistrationResult,
         config: KsiOidcClientConfig,
-        client: OidcClient,
     ):
         if info.client_id is not None and info.client_id != config.client_id:
             raise CommandError(
-                f"The registration ednpoint and token are for a different client: "
+                f"The registration endpoint and token are for a different client: "
                 f"{info.client_id}, not {config.client_id}"
             )
 
@@ -36,6 +34,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         config = KsiOidcClientConfig.get_solo()
 
+        if config.configuration_endpoint is None:
+            raise CommandError("Dynamic registration is not configured. Run 'oidc_init_dynamic' first.")
+
         client = fetch_unauthenticated_client(config)
 
         try:
@@ -44,13 +45,13 @@ class Command(BaseCommand):
                 config.configuration_endpoint,
                 config.client_id,
             )
-            self._update_config(info, config, client)
+            self._update_config(info, config)
         except Exception as e:
             if isinstance(e, OidcProviderError) and isinstance(
                 e.response, ClientRegistrationErrorResponse
             ):
                 info = RegistrationResult.from_error_response(e.response)
-                self._update_config(info, config, client)
+                self._update_config(info, config)
             raise CommandError(f"Failed to update the client configuration: {e}")
 
         self.stdout.write("Successfully updated the client configuration")
