@@ -3,7 +3,7 @@ from typing import Optional
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView as DjangoLoginView
-from django.core.exceptions import SuspiciousOperation, BadRequest
+from django.core.exceptions import SuspiciousOperation
 from django.shortcuts import redirect
 from django.http import HttpRequest, HttpResponse
 from django.utils.cache import add_never_cache_headers
@@ -46,7 +46,8 @@ class OidcLoginView(View):
     # `OidcLoginView.as_view(fallback_view=some_view)`.
     fallback_view = staticmethod(DjangoLoginView.as_view())
 
-    def __init__(self, fallback_view=None):
+    def __init__(self, fallback_view=None, **kwargs):
+        super().__init__(**kwargs)
         if fallback_view is not None:
             # `staticmethod` is used to avoid binding the `self` argument from `OidcLoginView`.
             self.fallback_view = staticmethod(fallback_view)
@@ -69,7 +70,7 @@ class OidcLoginView(View):
 
         return next_url
 
-    def dispatch(self, request):
+    def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and request.method in ("GET", "HEAD", "POST"):
             response = redirect(self._get_next_url(request))
             add_never_cache_headers(response)

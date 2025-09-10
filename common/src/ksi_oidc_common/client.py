@@ -266,7 +266,7 @@ class OidcClient:
         request_args = {
             "client_id": self.client_id,
             "response_type": "code",
-            "scope": " ".join(set([*self.login_requested_scopes, "openid"])),
+            "scope": " ".join({*self.login_requested_scopes, "openid"}),
             "nonce": nonce,
             "redirect_uri": self.callback_uri,
             "state": state,
@@ -356,7 +356,7 @@ class OidcClient:
             "grant_types": ["authorization_code", "refresh_token"],
             "token_endpoint_auth_method": "client_secret_basic",
             "scope": " ".join(
-                set([*self.login_requested_scopes, *self.offline_requested_scopes])
+                {*self.login_requested_scopes, *self.offline_requested_scopes}
             ),
             # TODO: Add PKCE-specific config
         }
