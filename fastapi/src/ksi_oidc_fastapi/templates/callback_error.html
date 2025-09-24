@@ -1,0 +1,49 @@
+<html>
+    <head>
+        <title>Failed to sign in</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                box-sizing: border-box;
+                background-color: #f1f5f9;
+                color: #334155;
+            }
+
+            main {
+                margin: 2rem;
+                padding: 2rem;
+                width: 100%;
+                max-width: 36rem;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 3px rgba(0, 0, 0, 0.05);
+                text-align: center;
+            }
+
+            .description {
+                font-size: 0.9em;
+            }
+
+            p {
+                margin-top: 2rem;
+            }
+        </style>
+    </head>
+
+    <body>
+        <main>
+            <h1>Failed to sign in</h1>
+            <p class="description">
+                {{ error_description|linebreaksbr }}
+            </p>
+            <p>
+                <a href="/">Return to the home page</a>
+            </p>
+        </main>
+    </body>
+</html>
