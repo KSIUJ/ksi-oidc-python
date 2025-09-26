@@ -216,14 +216,12 @@ name = "ksi-oidc-common"
 version = "1.0.0"
 source = { editable = "common" }
 dependencies = [
-    { name = "jinja2" },
     { name = "oic" },
     { name = "types-requests" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "jinja2", specifier = ">=3.0.0" },
     { name = "oic", specifier = ">=1.7.0" },
     { name = "types-requests", specifier = ">=2.32.4" },
 ]
@@ -234,6 +232,7 @@ version = "1.0.0"
 source = { editable = "fastapi" }
 dependencies = [
     { name = "fastapi" },
+    { name = "jinja2" },
     { name = "ksi-oidc-common" },
     { name = "uvicorn" },
 ]
@@ -241,6 +240,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.68.0" },
+    { name = "jinja2", specifier = ">=3.0.0" },
     { name = "ksi-oidc-common", editable = "common" },
     { name = "uvicorn", specifier = ">=0.15.0" },
 ]

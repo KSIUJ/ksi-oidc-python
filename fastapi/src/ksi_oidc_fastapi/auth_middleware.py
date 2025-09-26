@@ -1,9 +1,14 @@
 import logging
-from typing import Optional, Callable, Awaitable
-from fastapi import Request, Response
+from typing import Optional, Callable, Awaitable, Dict, List
+from fastapi import Request, Response, status
 from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import JSONResponse
 
+from ksi_oidc_common.tokens import AccessTokenClaims
+from ksi_oidc_common.client import OidcClient
+
+from .models import Role
 from .session_manager import session_manager, SessionData
 
 logger = logging.getLogger(__name__)
@@ -26,15 +31,24 @@ class AuthMiddleware(BaseHTTPMiddleware):
         session_cookie_httponly: bool = True,
         session_cookie_secure: bool = True,  
         session_cookie_samesite: str = "lax",
+        route_configuration : Dict[Role, List[str]] = {
+                                                        Role.PUBLIC: ["/auth/login", "/auth/callback", "/auth/logout", "/docs", "/openapi.json"],
+                                                        Role.USER: ["/protected"],
+                                                        Role.ADMIN: ["/admin"],
+                                                    },
+        role_hierarchy : List[Role] = [Role.PUBLIC, Role.USER, Role.ADMIN],
         protected_paths: Optional[list[str]] = None,
         public_paths: Optional[list[str]] = None,
-        login_redirect_path: str = "/auth/login"
+        login_redirect_path: str = "/auth/login",
+        oidc_client : OidcClient = None
     ):
         super().__init__(app)
         self.session_cookie_name = session_cookie_name
         self.session_cookie_httponly = session_cookie_httponly
         self.session_cookie_secure = session_cookie_secure
         self.session_cookie_samesite = session_cookie_samesite
+        self.route_configuration = route_configuration
+        self.role_hierarchy = role_hierarchy
         self.protected_paths = protected_paths or []
         self.public_paths = public_paths or [
             "/auth/login", 
@@ -45,6 +59,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/health"
         ]
         self.login_redirect_path = login_redirect_path
+        self.oidc_client = oidc_client
 
     async def dispatch(
         self, 
@@ -76,7 +91,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     url=self.login_redirect_path,
                     status_code=302
                 )
-        
+            if not self.is_path_allowed(request.url.path, self.oidc_client._unpack_access_token(session_data.user_id)):
+                return JSONResponse(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    content="Insufficient role permissions"
+                )
 
         response = await call_next(request)
         
@@ -87,14 +106,42 @@ class AuthMiddleware(BaseHTTPMiddleware):
         
         return response
     
+    def _normalize_path(self, path: str) -> str:
+        """Remove trailing slash except for root path."""
+        if path == "/" or not path:
+            return "/"
+        return path.rstrip("/")
+    
+    def is_path_allowed(self, path: str, user_role_tokens : AccessTokenClaims) -> bool:
+        """Check if user role can access the path."""
+        user_roles = user_role_tokens.realm_roles
+        user_level : int = 1
+        for user_role in user_roles:
+            if user_role in self.role_hierarchy:
+                user_level = self.role_hierarchy.index(user_role) if self.role_hierarchy.index(user_role) > 1 else 1
+        
+        normalized_path = self._normalize_path(path)
+        
+        # Check if the path starts with any route from higher roles
+        for i in range(user_level + 1, len(self.role_hierarchy)):
+            higher_role = self.role_hierarchy[i]
+            print(higher_role)
+            for route in self.route_configuration.get(higher_role, []):
+                normalized_route = self._normalize_path(route)
+                print(normalized_route)
+                if normalized_path.startswith(normalized_route):
+                    return False
+        
+        return True
+    
     def _requires_auth(self, path: str) -> bool:
         """Check if a path requires authentication"""
 
-        if self.protected_paths:
-            return any(path.startswith(protected) for protected in self.protected_paths)
+        # if self.route_configuration:
+        #     return any(path.startswith(protected) for protected in self.protected_paths)
         
 
-        return not any(path.startswith(public) for public in self.public_paths)
+        return not any(path.startswith(public) for public in self.route_configuration[Role.PUBLIC])
     
     def _set_session_cookie(self, response: Response, session_key: str):
         """Set session cookie on response"""

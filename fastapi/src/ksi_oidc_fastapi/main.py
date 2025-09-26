@@ -9,16 +9,16 @@ from .auth_middleware import AuthMiddleware, get_or_create_session, require_auth
 
 app = FastAPI()
 
-app.add_middleware(
-    AuthMiddleware,
-    session_cookie_name="session_id",
-    session_cookie_httponly=True,
-    session_cookie_secure=True, 
-    protected_paths=["/protected"],  # TODO Rework path logic using Roles which are pulled from KeyCloak
-    public_paths=["/auth/login", "/auth/callback", "/auth/logout", "/docs", "/openapi.json"],
-    login_redirect_path="/auth/login"
-)
 
+from typing import Dict, List
+from .models import Role
+# Route configuration: Role -> List of routes
+# Needs to include full routes but every route under the route included will also require the highest level the route included in
+ROLE_ROUTES: Dict[Role, List[str]] = {
+    Role.PUBLIC: ["/auth/login", "/auth/callback", "/auth/logout", "/docs", "/openapi.json"],
+    Role.USER: ["/protected"],
+    Role.ADMIN: ["/admin"],
+}
 
 oidc_client = OidcClient.load(
     "http://localhost:8080/realms/Mordor-2.0",
@@ -31,6 +31,21 @@ oidc_client.set_credentials(
     "TestClientSecret",
     "g8rTPq20CQEWV3xODDX4jHYZe5qa1BY8"
 )
+
+app.add_middleware(
+    AuthMiddleware,
+    session_cookie_name="session_id",
+    session_cookie_httponly=True,
+    session_cookie_secure=True, 
+    route_configuration = ROLE_ROUTES,
+    protected_paths=["/protected"],  # TODO Rework path logic using Roles which are pulled from KeyCloak
+    public_paths=["/auth/login", "/auth/callback", "/auth/logout", "/docs", "/openapi.json"],
+    login_redirect_path="/auth/login",
+    oidc_client = oidc_client
+)
+
+
+
 
 @app.get("/auth/login")
 async def login(request: Request):
@@ -158,7 +173,7 @@ async def protected_route(request: Request):
         id_token_claims = session_data.tokens.id_token_claims
         user_claims = {
             "email": id_token_claims.get("email"),
-            "roles": id_token_claims.get("roles", []),
+            "roles": id_token_claims.get("realm_access", {}).get("roles"),
             "realm_access": id_token_claims.get("realm_access", {}),
             "preferred_username": id_token_claims.get("preferred_username"),
             "profile": id_token_claims.get("profile"),
@@ -174,7 +189,32 @@ async def protected_route(request: Request):
             "last_accessed": session_data.last_accessed
         }
     }
-
+@app.get("/admin")
+async def admin_route(request: Request):
+    """Example admin route"""
+    session_data = request.state.session_data  
+    
+    user_claims = {}
+    if session_data.tokens and session_data.tokens.id_token_claims:
+        id_token_claims = session_data.tokens.id_token_claims
+        user_claims = {
+            "email": id_token_claims.get("email"),
+            "roles": id_token_claims.get("realm_access", {}).get("roles"),
+            "realm_access": id_token_claims.get("realm_access", {}),
+            "preferred_username": id_token_claims.get("preferred_username"),
+            "profile": id_token_claims.get("profile"),
+            "basic": id_token_claims
+        }
+    
+    return {
+        "message": "You are authenticated!",
+        "user_id": request.state.user_id,
+        "user_claims": user_claims,
+        "session_info": {
+            "created_at": session_data.created_at,
+            "last_accessed": session_data.last_accessed
+        }
+    }
 @app.get("/")
 async def root(request: Request):
     """Public route"""
