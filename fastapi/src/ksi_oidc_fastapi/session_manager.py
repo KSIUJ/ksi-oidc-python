@@ -2,14 +2,16 @@ import time
 import secrets
 from typing import Dict, Optional, Any
 from dataclasses import dataclass, asdict
+from fastapi import Request
 
 from ksi_oidc_common.tokens import Tokens
+from .oidc_client import get_oidc_client
 
+import asyncio
 
 @dataclass
 class SessionData:
     """Data stored in a user session"""
-    user_id: Optional[str] = None
     tokens: Optional[Tokens] = None
     nonce: Optional[str] = None
     oauth_state: Optional[str] = None
@@ -32,15 +34,23 @@ class SessionData:
 
     def is_authenticated(self) -> bool:
         """Check if user is authenticated (has valid tokens)"""
-        return self.tokens is not None and self.user_id is not None
+        return self.tokens is not None
 
 
 class SessionManager:
     """In-memory session manager for FastAPI OIDC authentication"""
-    
+                
     def __init__(self, session_timeout: int = 300):
         self._sessions: Dict[str, SessionData] = {}
         self.session_timeout = session_timeout
+    
+    async def cleanup_sessions():
+        """Periodic cleanup of expired sessions"""
+        while True:
+            await asyncio.sleep(5) 
+            cleaned = session_manager.cleanup_expired_sessions()
+            if cleaned > 0:
+                print(f"Cleaned up {cleaned} expired sessions")
     
     def create_session(self) -> str:
         """Create a new session and return session key"""
@@ -65,7 +75,8 @@ class SessionManager:
 
         session.last_accessed = time.time()
         return session
-    
+   
+        
     def update_session(self, session_key: str, **kwargs) -> bool:
         """Update session data"""
         if not session_key:
@@ -81,7 +92,23 @@ class SessionManager:
                     
         session.last_accessed = time.time()
         return True
+
+    def update_session_tokens(self, session_key: str, tokens) -> bool:
+        """Update session data"""
+        if not session_key:
+            return False
+        
+        session = self._sessions.get(session_key)
+        if session is None:
+            return False
+        
+        session.tokens = tokens
+                    
+        session.last_accessed = time.time()
+        return True
     
+
+        
     def delete_session(self, session_key: str) -> bool:
         """Delete a session"""
         if not session_key:
@@ -105,11 +132,10 @@ class SessionManager:
             return False
         return session.oauth_state == received_state
     
-    def set_user_authenticated(self, session_key: str, user_id: str, tokens: Tokens) -> bool:
+    def set_user_authenticated(self, session_key: str, tokens: Tokens) -> bool:
         """Mark user as authenticated with tokens"""
         return self.update_session(
             session_key,
-            user_id=user_id,
             tokens=tokens,
             oauth_state=None,
             nonce=None
@@ -119,7 +145,6 @@ class SessionManager:
         """Clear user authentication from session"""
         return self.update_session(
             session_key,
-            user_id=None,
             tokens=None,
             oauth_state=None,
             nonce=None
@@ -127,12 +152,10 @@ class SessionManager:
     
     def cleanup_expired_sessions(self) -> int:
         """Remove expired sessions and return count of removed sessions"""
-        current_time = time.time()
         expired_keys = []
-        
-        
+    
         for key, session in self._sessions.items():
-            if current_time - session.last_accessed > self.session_timeout:
+            if session.is_expired(self.session_timeout):
                 expired_keys.append(key)
             
         for key in expired_keys:
