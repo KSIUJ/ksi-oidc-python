@@ -32,7 +32,7 @@ This package provides a middleware, router and session manager to add OIDC(keycl
    Example `.env`:
 
    ```
-   ISSUER=http://localhost:8080/realms/Mordor-2.0
+   ISSUER=http://localhost:8080/realms/myrealm
    CLIENT_ID=TestClientSecret
    CLIENT_SECRET=g8rTPq20CQEWV3xODDX4jHYZe5qa1BY8
    ```
