@@ -73,14 +73,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
             session_data is not None and session_data.is_authenticated()
         )
         request.state.tokens = session_data.tokens if session_data else None
-        logger.error(f"Tokens Have Been Renewed")
         refresh_oidc_auth_session(request)
         if getattr(self.user_repository_instance, "get_user_by_sub", None) and getattr(self.user_repository_instance, "create_user", None):
             sub = getattr(session_data.tokens, "sub", None)
             if sub:
-                setattr(request.state, "user", self.user_repository_instance.get_user_by_sub(sub))
+                setattr(request.state, "user", await self.user_repository_instance.get_user_by_sub(sub))
                 if not getattr(request.state, "user", None):
-                    setattr(request.state, "user", self.user_repository_instance.get_user_by_sub(sub))
+                    setattr(request.state, "user", await self.user_repository_instance.get_user_by_sub(sub))
             else:
                 logger.error("Token parsing resulted in identificator sub == None")
                 

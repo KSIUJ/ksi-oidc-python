@@ -38,12 +38,12 @@ async def auth_callback(request: Request):
     """Handle OIDC callback"""
     session_key = get_or_create_session(request)
     query_params = dict(request.query_params)
-    logging.error(f"Query params: {query_params}")
+    # logging.error(f"Query params: {query_params}")
 
     if not session_manager.verify_oauth_state(session_key, query_params.get("state")):
         logging.error("Invalid state parameter")
         return RedirectResponse(
-            url="/auth/login",
+            url=f"{router.prefix}/login",
             status_code=302
         )
 

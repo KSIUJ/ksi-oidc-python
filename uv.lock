@@ -5,6 +5,7 @@ requires-python = ">=3.13.0"
 [manifest]
 members = [
     "ksi-oidc-common",
+    "ksi-oidc-django",
     "ksi-oidc-fastapi",
     "ksi-oidc-python",
 ]
@@ -29,6 +30,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f1/b4/636b3b65173d3ce9a38ef5f0522789614e590dab6a8d505340a4efe4c567/anyio-4.10.0.tar.gz", hash = "sha256:3f3fae35c96039744587aa5b8371e7e8e603c0702999535961dd336026973ba6", size = 213252, upload-time = "2025-08-04T08:54:26.451Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6f/12/e5e0282d673bb9746bacfb6e2dba8719989d3660cdb2ea79aee9a9651afb/anyio-4.10.0-py3-none-any.whl", hash = "sha256:60e474ac86736bbfd6f210f7a61218939c318f43f9972497381f1c5e930ed3d1", size = 107213, upload-time = "2025-08-04T08:54:24.882Z" },
+]
+
+[[package]]
+name = "asgiref"
+version = "3.9.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7f/bf/0f3ecda32f1cb3bf1dca480aca08a7a8a3bdc4bed2343a103f30731565c9/asgiref-3.9.2.tar.gz", hash = "sha256:a0249afacb66688ef258ffe503528360443e2b9a8d8c4581b6ebefa58c841ef1", size = 36894, upload-time = "2025-09-23T15:00:55.136Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/d1/69d02ce34caddb0a7ae088b84c356a625a93cd4ff57b2f97644c03fad905/asgiref-3.9.2-py3-none-any.whl", hash = "sha256:0b61526596219d70396548fc003635056856dba5d0d086f86476f10b33c75960", size = 23788, upload-time = "2025-09-23T15:00:53.627Z" },
 ]
 
 [[package]]
@@ -159,6 +169,32 @@ wheels = [
 ]
 
 [[package]]
+name = "django"
+version = "5.2.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asgiref" },
+    { name = "sqlparse" },
+    { name = "tzdata", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4c/8c/2a21594337250a171d45dda926caa96309d5136becd1f48017247f9cdea0/django-5.2.6.tar.gz", hash = "sha256:da5e00372763193d73cecbf71084a3848458cecf4cee36b9a1e8d318d114a87b", size = 10858861, upload-time = "2025-09-03T13:04:03.23Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f5/af/6593f6d21404e842007b40fdeb81e73c20b6649b82d020bb0801b270174c/django-5.2.6-py3-none-any.whl", hash = "sha256:60549579b1174a304b77e24a93d8d9fafe6b6c03ac16311f3e25918ea5a20058", size = 8303111, upload-time = "2025-09-03T13:03:47.808Z" },
+]
+
+[[package]]
+name = "django-solo"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/98/69/c550d3bf82c7b4e75295b2e13c41b8f15c8d63b9379ee7ce2f7b7615f919/django_solo-2.4.0.tar.gz", hash = "sha256:ec92dc00aec75034a3f93b3a85152e57c4b03d7987f8cfd0ea8a47cc6e3c2084", size = 13571, upload-time = "2024-10-19T13:09:09.971Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c3/3a/c5332bb9d3d58e2b6b7ed2a4c09ea2b0b1a8e3c5fe9d8169c0867922b6f4/django_solo-2.4.0-py3-none-any.whl", hash = "sha256:62e9c7d929620a61848515839833750ca142840051595cf5c8e617dcefc9e5cf", size = 16862, upload-time = "2024-10-19T13:09:08.465Z" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.116.2"
 source = { registry = "https://pypi.org/simple" }
@@ -200,18 +236,6 @@ wheels = [
 ]
 
 [[package]]
-name = "jinja2"
-version = "3.1.6"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "markupsafe" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
-]
-
-[[package]]
 name = "ksi-oidc-common"
 version = "1.0.0"
 source = { editable = "common" }
@@ -227,12 +251,28 @@ requires-dist = [
 ]
 
 [[package]]
+name = "ksi-oidc-django"
+version = "1.0.0"
+source = { editable = "django" }
+dependencies = [
+    { name = "django" },
+    { name = "django-solo" },
+    { name = "ksi-oidc-common" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "django", specifier = ">=5.2.6" },
+    { name = "django-solo", specifier = ">=2.4.0" },
+    { name = "ksi-oidc-common", editable = "common" },
+]
+
+[[package]]
 name = "ksi-oidc-fastapi"
 version = "1.0.0"
 source = { editable = "fastapi" }
 dependencies = [
     { name = "fastapi" },
-    { name = "jinja2" },
     { name = "ksi-oidc-common" },
     { name = "uvicorn" },
 ]
@@ -240,7 +280,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.68.0" },
-    { name = "jinja2", specifier = ">=3.0.0" },
     { name = "ksi-oidc-common", editable = "common" },
     { name = "uvicorn", specifier = ">=0.15.0" },
 ]
@@ -250,6 +289,7 @@ name = "ksi-oidc-python"
 version = "0"
 source = { virtual = "." }
 dependencies = [
+    { name = "ksi-oidc-django" },
     { name = "ksi-oidc-fastapi" },
 ]
 
@@ -260,7 +300,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ksi-oidc-fastapi", editable = "fastapi" }]
+requires-dist = [
+    { name = "ksi-oidc-django", editable = "django" },
+    { name = "ksi-oidc-fastapi", editable = "fastapi" },
+]
 
 [package.metadata.requires-dev]
 dev = [
@@ -547,6 +590,15 @@ wheels = [
 ]
 
 [[package]]
+name = "sqlparse"
+version = "0.5.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/40/edede8dd6977b0d3da179a342c198ed100dd2aba4be081861ee5911e4da4/sqlparse-0.5.3.tar.gz", hash = "sha256:09f67787f56a0b16ecdbde1bfc7f5d9c3371ca683cfeaa8e6ff60b4807ec9272", size = 84999, upload-time = "2024-12-10T12:05:30.728Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/5c/bfd6bd0bf979426d405cc6e71eceb8701b148b16c21d2dc3c261efc61c7b/sqlparse-0.5.3-py3-none-any.whl", hash = "sha256:cf2196ed3418f3ba5de6af7e82c694a9fbdbfecccdfc72e281548517081f16ca", size = 44415, upload-time = "2024-12-10T12:05:27.824Z" },
+]
+
+[[package]]
 name = "starlette"
 version = "0.48.0"
 source = { registry = "https://pypi.org/simple" }
@@ -589,6 +641,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f8/b1/0c11f5058406b3af7609f121aaa6b609744687f1d158b3c3a5bf4cc94238/typing_inspection-0.4.1.tar.gz", hash = "sha256:6ae134cc0203c33377d43188d4064e9b357dba58cff3185f22924610e70a9d28", size = 75726, upload-time = "2025-05-21T18:55:23.885Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/69/cd203477f944c353c31bade965f880aa1061fd6bf05ded0726ca845b6ff7/typing_inspection-0.4.1-py3-none-any.whl", hash = "sha256:389055682238f53b04f7badcb49b989835495a96700ced5dab2d8feae4b26f51", size = 14552, upload-time = "2025-05-21T18:55:22.152Z" },
+]
+
+[[package]]
+name = "tzdata"
+version = "2025.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/95/32/1a225d6164441be760d75c2c42e2780dc0873fe382da3e98a2e1e48361e5/tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9", size = 196380, upload-time = "2025-03-23T13:54:43.652Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8", size = 347839, upload-time = "2025-03-23T13:54:41.845Z" },
 ]
 
 [[package]]

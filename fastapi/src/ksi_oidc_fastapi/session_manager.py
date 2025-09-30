@@ -43,12 +43,28 @@ class SessionManager:
     def __init__(self, session_timeout: int = 300):
         self._sessions: Dict[str, SessionData] = {}
         self.session_timeout = session_timeout
+        self._cleanup_task = None
+        
+        try:
+            loop = asyncio.get_running_loop()
+            self._cleanup_task = loop.create_task(self.cleanup_sessions())
+        except RuntimeError:
+            pass
     
-    async def cleanup_sessions():
+    def start_cleanup(self):
+        """Start the cleanup task if not already running"""
+        if self._cleanup_task is None or self._cleanup_task.done():
+            try:
+                loop = asyncio.get_running_loop()
+                self._cleanup_task = loop.create_task(self.cleanup_sessions())
+            except RuntimeError:
+                pass
+    
+    async def cleanup_sessions(self):
         """Periodic cleanup of expired sessions"""
         while True:
             await asyncio.sleep(5) 
-            cleaned = session_manager.cleanup_expired_sessions()
+            cleaned = self.cleanup_expired_sessions()
             if cleaned > 0:
                 print(f"Cleaned up {cleaned} expired sessions")
     
@@ -170,3 +186,4 @@ class SessionManager:
 
 # Global session manager instance
 session_manager = SessionManager()
+session_manager.start_cleanup()

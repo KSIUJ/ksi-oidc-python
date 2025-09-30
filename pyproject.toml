@@ -4,7 +4,7 @@ version = "0"
 name = "ksi-oidc-python"
 requires-python = ">=3.13.0"
 dependencies=[
-    # "ksi_oidc_django",
+    "ksi_oidc_django",
     "ksi_oidc_fastapi"
 ]
 license="MPL-2.0"
@@ -13,12 +13,11 @@ license="MPL-2.0"
 package=false
 
 [tool.uv.workspace]
-members = ["common", "fastapi"]
-# members = ["common", "django", "fastapi"]
+members = ["common", "django", "fastapi"]
 
 [tool.uv.sources]
 ksi-oidc-common = { workspace = true }
-# ksi-oidc-django = { workspace = true }
+ksi-oidc-django = { workspace = true }
 ksi-oidc-fastapi = { workspace = true }
 
 [dependency-groups]
