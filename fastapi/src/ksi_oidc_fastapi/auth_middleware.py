@@ -84,7 +84,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 logger.error("Token parsing resulted in identificator sub == None")
                 
         else:
-            logger.error("get_user_by_sub or create_user is not defined in the passed to the middleware user_repository instance")
+            if not getattr(request.state, "is_authenticated", False):
+                logger.error("get_user_by_sub or create_user is not defined in the passed to the middleware user_repository instance OR user is not authenticated")
         
         
         if not self.is_path_allowed(request, get_oidc_client()._unpack_access_token(session_data.tokens.access_token) if getattr(session_data, "tokens", None) else None):
