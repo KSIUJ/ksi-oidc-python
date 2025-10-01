@@ -11,7 +11,7 @@ from .auth_router import router as auth_router
 # Needs to include full routes but every route under the route included will also require the highest level the route included in
 ROLE_ROUTES: Dict[Role, List[str]] = {
     Role.PUBLIC: ["/", "/auth/login", "/auth/callback", "/auth/logout"],
-    Role.USER: ["/auth/protected", "/docs", "/openapi.json"],
+    Role.USER: ["/auth/protected"],
     Role.ADMIN: ["/auth/admin"],
 }
 

@@ -87,7 +87,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             logger.error("get_user_by_sub or create_user is not defined in the passed to the middleware user_repository instance")
         
         
-        if not self.is_path_allowed(request.url.path, get_oidc_client()._unpack_access_token(session_data.tokens.access_token) if getattr(session_data, "tokens", None) else None, 1 if getattr(request.state, "is_authenticated", False) else 0):
+        if not self.is_path_allowed(request.url.path, get_oidc_client()._unpack_access_token(session_data.tokens.access_token) if getattr(session_data, "tokens", None) else None):
                 return RedirectResponse(
                     url="/" if getattr(request.state, "is_authenticated", False) else self.login_redirect_path,
                     status_code=status.HTTP_302_FOUND,
@@ -120,10 +120,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return "/"
         return path.rstrip("/")
     
-    def is_path_allowed(self, path: str, user_role_tokens : AccessTokenClaims, user_level = 1) -> bool:
+    def is_path_allowed(self, path: str, user_role_tokens : AccessTokenClaims) -> bool:
         """Check if user role can access the path."""
-        user_roles = user_role_tokens.client_roles if getattr(user_role_tokens, "client_roles", None) else [Role.PUBLIC.value] if user_level == 0 else [Role.USER.value]
-        user_level : int = user_level
+        user_roles = user_role_tokens.client_roles if getattr(user_role_tokens, "client_roles", None) is not None else [Role.USER] if user_role_tokens else [Role.PUBLIC]
+        user_level : int = 0
         for user_role in user_roles:
             if user_role in self.role_hierarchy:
                 user_level = self.role_hierarchy.index(user_role)
