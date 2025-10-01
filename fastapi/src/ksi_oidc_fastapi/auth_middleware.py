@@ -74,12 +74,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
         )
         request.state.tokens = session_data.tokens if session_data else None
         refresh_oidc_auth_session(request)
-        if getattr(self.user_repository_instance, "get_user_by_sub", None) and getattr(self.user_repository_instance, "create_user", None):
-            sub = getattr(session_data.tokens, "sub", None)
+        if getattr(self.user_repository_instance, "get_user_by_sub", None) and getattr(self.user_repository_instance, "create_user", None) and getattr(request.state, "is_authenticated", False):
+            sub = getattr(session_data.tokens, "id_token_claims", None)['sub']
             if sub:
                 setattr(request.state, "user", await self.user_repository_instance.get_user_by_sub(sub))
                 if not getattr(request.state, "user", None):
-                    setattr(request.state, "user", await self.user_repository_instance.get_user_by_sub(sub))
+                    setattr(request.state, "user", await self.user_repository_instance.create_user(sub, sub, getattr(session_data.tokens, "id_token_claims", None)['email']))
             else:
                 logger.error("Token parsing resulted in identificator sub == None")
                 
@@ -87,7 +87,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             logger.error("get_user_by_sub or create_user is not defined in the passed to the middleware user_repository instance")
         
         
-        if not self.is_path_allowed(request.url.path, get_oidc_client()._unpack_access_token(session_data.tokens.access_token) if getattr(session_data, "tokens", None) else None):
+        if not self.is_path_allowed(request, get_oidc_client()._unpack_access_token(session_data.tokens.access_token) if getattr(session_data, "tokens", None) else None):
                 return RedirectResponse(
                     url="/" if getattr(request.state, "is_authenticated", False) else self.login_redirect_path,
                     status_code=status.HTTP_302_FOUND,
@@ -120,16 +120,21 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return "/"
         return path.rstrip("/")
     
-    def is_path_allowed(self, path: str, user_role_tokens : AccessTokenClaims) -> bool:
+    def is_path_allowed(self, request: Request, user_role_tokens: AccessTokenClaims) -> bool:
         """Check if user role can access the path."""
-        user_roles = user_role_tokens.client_roles if getattr(user_role_tokens, "client_roles", None) is not None else [Role.USER] if user_role_tokens else [Role.PUBLIC]
-        user_level : int = 0
+        client_roles = getattr(user_role_tokens, "client_roles", None)
+        user_roles = client_roles if (client_roles is not None and len(client_roles) > 0) else [Role.USER]
+        
+        user_roles = user_roles if getattr(request.state, "is_authenticated", False) else [Role.PUBLIC]
+        
+        user_level: int = 0
         for user_role in user_roles:
             if user_role in self.role_hierarchy:
                 user_level = self.role_hierarchy.index(user_role)
         
-        normalized_path = self._normalize_path(path)
+        setattr(request.state, "role", self.role_hierarchy[user_level])
         
+        normalized_path = self._normalize_path(request.url.path)
         for i in range(user_level + 1, len(self.role_hierarchy)):
             higher_role = self.role_hierarchy[i]
             for route in self.route_configuration.get(higher_role, []):

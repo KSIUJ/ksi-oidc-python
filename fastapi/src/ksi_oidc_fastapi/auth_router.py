@@ -9,7 +9,7 @@ from .auth_middleware import AuthMiddleware, get_or_create_session, logout_sessi
 from .oidc_client import get_oidc_client
 
 
-router = APIRouter(prefix="/auth", tags=["user", "file"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.get("/login")
 async def login(request: Request):
