@@ -132,8 +132,19 @@ Start the FastAPI app with Uvicorn:
 ```bash
 uvicorn your_module:app --port 8081
 ```
+or
+```bash
+uv run uvicorn your_module:app --port 8081
+```
 
 Replace `your_module:app` with the import path for the module that defines `app` in your project.
+
+If you don't have a keycloak server setup one how you want from here https://www.keycloak.org
+if you want to get it in docker fast setup use `docker run --name keycloak -p 8080 quay.io/keycloak/keycloak start-dev`
+
+# Running/Testing Notes
+- There is networking issue if you want to run both your app and keycloak in docker because docker isolates it's containers networks and even if you add app and keycloak to a docker network it will have to access the keycloak by {container_name}:port and it is only container specific that results in an impossible redirect. IT IS NOT A PROBLEM IF YOU LAUNCH YOUR APP LOCALLY!!
+It might be just some configuration issues, I wasn't able to find it. 
 
 ## Troubleshooting
 

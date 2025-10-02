@@ -75,7 +75,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if sub:
                 setattr(request.state, "user", await self.user_repository_instance.get_user_by_sub(sub))
                 if not getattr(request.state, "user", None):
-                    setattr(request.state, "user", await self.user_repository_instance.create_user(sub, sub, getattr(session_data.tokens, "id_token_claims", None)['email']))
+                    setattr(request.state, "user", await self.user_repository_instance.create_user(sub, getattr(session_data.tokens, "id_token_claims", None)['email'].split("@")[0], getattr(session_data.tokens, "id_token_claims", None)['email']))
             else:
                 logger.error("Token parsing resulted in identificator sub == None")
                 
