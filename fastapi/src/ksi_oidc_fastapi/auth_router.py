@@ -8,8 +8,9 @@ from .session_manager import session_manager
 from .auth_middleware import AuthMiddleware, get_or_create_session, logout_session, delete_session_cookie
 from .oidc_client import get_oidc_client
 
+import logging
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(tags=["auth"])
 
 @router.get("/login")
 async def login(request: Request):
@@ -32,7 +33,6 @@ async def login(request: Request):
     
     return RedirectResponse(url=auth_url, status_code=302)
 
-import logging
 @router.get("/callback")
 async def auth_callback(request: Request):
     """Handle OIDC callback"""
@@ -60,7 +60,6 @@ async def auth_callback(request: Request):
 
     try:
         auth_response = get_oidc_client().parse_authorization_callback_response(query_params)
-        logging.error(f"Auth response: {auth_response.to_dict()}")
 
         tokens = get_oidc_client().exchange_code_for_access_token(
             code=auth_response["code"],

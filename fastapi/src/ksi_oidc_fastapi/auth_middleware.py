@@ -31,15 +31,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
         self, 
         app,
         user_repository_instance : object,
+        route_configuration : Dict[Role, List[str]],
         session_cookie_name: str = "session_id",
         session_cookie_httponly: bool = True,
         session_cookie_secure: bool = True,  
         session_cookie_samesite: str = "lax",
-        route_configuration : Dict[Role, List[str]] = {
-                                                        Role.PUBLIC: ["/auth/login", "/auth/callback", "/auth/logout", "/docs", "/openapi.json"],
-                                                        Role.USER: ["/protected"],
-                                                        Role.ADMIN: ["/admin"],
-                                                    },
         role_hierarchy : List[Role] = [Role.PUBLIC, Role.USER, Role.ADMIN],
         login_redirect_path: str = "/auth/login",
     ):

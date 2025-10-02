@@ -40,7 +40,7 @@ class SessionData:
 class SessionManager:
     """In-memory session manager for FastAPI OIDC authentication"""
                 
-    def __init__(self, session_timeout: int = 300):
+    def __init__(self, session_timeout: int = 172800):
         self._sessions: Dict[str, SessionData] = {}
         self.session_timeout = session_timeout
         self._cleanup_task = None
@@ -63,7 +63,7 @@ class SessionManager:
     async def cleanup_sessions(self):
         """Periodic cleanup of expired sessions"""
         while True:
-            await asyncio.sleep(5) 
+            await asyncio.sleep(3600) 
             cleaned = self.cleanup_expired_sessions()
             if cleaned > 0:
                 print(f"Cleaned up {cleaned} expired sessions")

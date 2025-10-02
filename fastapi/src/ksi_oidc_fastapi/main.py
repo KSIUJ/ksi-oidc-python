@@ -7,11 +7,15 @@ from typing import Dict, List
 from .models import Role
 from .auth_middleware import AuthMiddleware
 from .auth_router import router as auth_router
+
 # Route configuration: Role -> List of routes
 # Needs to include full routes but every route under the route included will also require the highest level the route included in
+Role.add_role("MANAGER", "manager")
+Role.get_all_roles()
 ROLE_ROUTES: Dict[Role, List[str]] = {
-    Role.PUBLIC: ["/", "/auth/login", "/auth/callback", "/auth/logout"],
-    Role.USER: ["/auth/protected"],
+    Role.PUBLIC: ["/"],
+    Role.USER: ["/auth/protected", "/docs", "/openapi.json"],
+    Role.MANAGER: ["/auth/manager"],
     Role.ADMIN: ["/auth/admin"],
 }
 
@@ -23,10 +27,10 @@ app.add_middleware(
     session_cookie_secure=True, 
     route_configuration = ROLE_ROUTES,
     login_redirect_path="/auth/login",
-    role_hierarchy = [Role.PUBLIC, Role.USER, Role.ADMIN]
+    role_hierarchy = [Role.PUBLIC, Role.USER, Role.MANAGER, Role.ADMIN]
 )
 
-app.include_router(auth_router)
+app.include_router(auth_router, prefix="/auth")
 
 @app.get("/")
 async def root(request: Request):
