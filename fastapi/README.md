@@ -74,6 +74,7 @@ Edit values or set env vars to configure callback and redirect URIs.
 from fastapi import FastAPI, Request
 from ksi_oidc_fastapi.auth_middleware import AuthMiddleware
 from ksi_oidc_fastapi.auth_router import router as auth_router
+from ksi_oidc_fastapi.example_router import router as example_router
 from ksi_oidc_fastapi.models import Role
 from typing import Dict, List
 
@@ -84,9 +85,9 @@ Role.add_role("MANAGER", "manager")
 
 ROLE_ROUTES: Dict[Role, List[str]] = {
     Role.PUBLIC: ["/"],  # All routes are accessible to public users by default
-    Role.USER: ["/auth/protected", "/docs", "/openapi.json"],
-    Role.MANAGER: ["/auth/manager"],
-    Role.ADMIN: ["/auth/admin"],
+    Role.USER: ["/example/protected", "/docs", "/openapi.json"],
+    Role.MANAGER: ["/example/manager"],
+    Role.ADMIN: ["/example/admin"],
 }
 
 # Implement and pass your user repository instance. It should support at minimum:
@@ -107,6 +108,8 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/auth")  # If you change the prefix, update it in .env or docker-compose
+
+app.include_router(example_router, prefix="/example") # Example router in which you will be able to test /protected if user is authenticated and /admin if user has admin role on keycloak
 
 @app.get("/")
 async def root(request: Request):

@@ -33,7 +33,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
         user_repository_instance : object,
         route_configuration : Dict[Role, List[str]],
         session_cookie_name: str = "session_id",
-        session_cookie_httponly: bool = True,
         session_cookie_secure: bool = True,  
         session_cookie_samesite: str = "lax",
         role_hierarchy : List[Role] = [Role.PUBLIC, Role.USER, Role.ADMIN],
@@ -42,7 +41,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.user_repository_instance = user_repository_instance
         self.session_cookie_name = session_cookie_name
-        self.session_cookie_httponly = session_cookie_httponly
+        self.session_cookie_httponly = True
         self.session_cookie_secure = session_cookie_secure
         self.session_cookie_samesite = session_cookie_samesite
         self.route_configuration = route_configuration
@@ -64,7 +63,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         session_data = session_manager.get_session(session_key) if session_key else None
         request.state.session_data = session_data
         
-
+        
         request.state.is_authenticated = (
             session_data is not None and session_data.is_authenticated()
         )
@@ -75,7 +74,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if sub:
                 setattr(request.state, "user", await self.user_repository_instance.get_user_by_sub(sub))
                 if not getattr(request.state, "user", None):
-                    setattr(request.state, "user", await self.user_repository_instance.create_user(sub, getattr(session_data.tokens, "id_token_claims", None)['email'].split("@")[0], getattr(session_data.tokens, "id_token_claims", None)['email']))
+                    setattr(request.state, "user", await self.user_repository_instance.create_user(sub, getattr(session_data.tokens, "id_token_claims", None)['preferred_username'], getattr(session_data.tokens, "id_token_claims", None)['email']))
             else:
                 logger.error("Token parsing resulted in identificator sub == None")
                 
@@ -89,18 +88,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     url="/" if getattr(request.state, "is_authenticated", False) else self.login_redirect_path,
                     status_code=status.HTTP_302_FOUND,
                 )
-        # if self._requires_auth(request.url.path):
-        #     if not getattr(request.state, "is_authenticated", False):
-        #         logger.error(f"Redirecting unauthenticated user from {request.url.path}")
-        #         return RedirectResponse(
-        #             url=self.login_redirect_path,
-        #             status_code=status.HTTP_302_FOUND
-        #         )
-        #     if not self.is_path_allowed(request.url.path, get_oidc_client()._unpack_access_token(session_data.tokens.access_token)):
-        #         return RedirectResponse(
-        #             url="/" if not getattr(request.state, "is_authenticated", False) else self.login_redirect_path,
-        #             status_code=status.HTTP_302_FOUND,
-        #         )
 
         response = await call_next(request)
         
@@ -141,9 +128,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
         
         return True
     
-    # def _requires_auth(self, path: str) -> bool:
-    #     """Check if a path requires authentication"""
-    #     return not any(path == public for public in self.route_configuration[Role.PUBLIC])
     
     def _set_session_cookie(self, response: Response, session_key: str):
         """Set session cookie on response"""
@@ -247,7 +231,13 @@ def get_or_create_session(request: Request) -> str:
 
 
 def logout_session(request: Request) -> bool:
-    """Helper function to logout current session"""
+    """Log out the current user session.
+    
+    Returns:
+        bool: True if the user was successfully logged out and session was 
+            invalidated, False if no session key exists or logout failed.
+    
+    """
     session_key = request.state.session_key
     if session_key:
         success = session_manager.logout_user(session_key)
@@ -256,7 +246,6 @@ def logout_session(request: Request) -> bool:
             request.state.tokens = None
         return success
     return False
-
 
 def delete_session_cookie(response: Response, cookie_name: str = "session_id"):
     """Helper function to delete session cookie"""
