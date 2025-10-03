@@ -100,7 +100,6 @@ app.add_middleware(
     AuthMiddleware,
     user_repository_instance=user_repo,
     session_cookie_name="session_id",
-    session_cookie_httponly=True,
     session_cookie_secure=True,
     route_configuration=ROLE_ROUTES,
     login_redirect_path="/auth/login",
