@@ -29,11 +29,23 @@ class SessionData:
         return asdict(self)
 
     def is_expired(self, max_age: int = 300) -> bool:
-        """Check if session is expired (default 5 minutes)"""
+        """
+        Check if session is expired (default 5 minutes)
+        
+        Returns:
+            True: Session has exceeded max_age since last access\n
+            False: Session is still valid
+        """
         return time.time() - self.last_accessed > max_age
 
     def is_authenticated(self) -> bool:
-        """Check if user is authenticated (has valid tokens)"""
+        """
+        Check if user is authenticated (has valid tokens)
+        
+        Returns:
+            True: User has valid tokens stored\n
+            False: No tokens present (user not authenticated)
+        """
         return self.tokens is not None
 
 
@@ -94,7 +106,13 @@ class SessionManager:
    
         
     def update_session(self, session_key: str, **kwargs) -> bool:
-        """Update session data"""
+        """
+        Update session data
+        
+        Returns:
+            True: Session was found and successfully updated\n
+            False: Session key is empty or session doesn't exist
+        """
         if not session_key:
             return False
         
@@ -110,7 +128,13 @@ class SessionManager:
         return True
 
     def update_session_tokens(self, session_key: str, tokens) -> bool:
-        """Update session data"""
+        """
+        Update session data with new tokens
+        
+        Returns:
+            True: Session was found and tokens were updated\n
+            False: Session key is empty or session doesn't exist
+        """
         if not session_key:
             return False
         
@@ -126,7 +150,13 @@ class SessionManager:
 
         
     def delete_session(self, session_key: str) -> bool:
-        """Delete a session"""
+        """
+        Delete a session
+        
+        Returns:
+            True: Session was found and successfully deleted\n
+            False: Session key is empty or session doesn't exist
+        """
         if not session_key:
             return False
             
@@ -134,7 +164,13 @@ class SessionManager:
         return self._sessions.pop(session_key, None) is not None
     
     def set_oauth_state(self, session_key: str, state: str, nonce: str) -> bool:
-        """Store OAuth state and nonce for CSRF protection"""
+        """
+        Store OAuth state and nonce for CSRF protection
+        
+        Returns:
+            True: OAuth state and nonce were successfully stored\n
+            False: Session update failed (session key empty or session doesn't exist)
+        """
         return self.update_session(
             session_key, 
             oauth_state=state, 
@@ -142,14 +178,26 @@ class SessionManager:
         )
     
     def verify_oauth_state(self, session_key: str, received_state: str) -> bool:
-        """Verify OAuth state parameter matches stored state"""
+        """
+        Verify OAuth state parameter matches stored state
+        
+        Returns:
+            True: Session exists, has stored OAuth state, and it matches received_state\n
+            False: Session doesn't exist, no stored OAuth state, or states don't match
+        """
         session = self.get_session(session_key)
         if not session or not session.oauth_state:
             return False
         return session.oauth_state == received_state
     
     def set_user_authenticated(self, session_key: str, tokens: Tokens) -> bool:
-        """Mark user as authenticated with tokens"""
+        """
+        Mark user as authenticated with tokens
+        
+        Returns:
+            True: User tokens were successfully stored and OAuth state cleared\n
+            False: Session update failed (session key empty or session doesn't exist)
+        """
         return self.update_session(
             session_key,
             tokens=tokens,
@@ -158,7 +206,13 @@ class SessionManager:
         )
     
     def logout_user(self, session_key: str) -> bool:
-        """Clear user authentication from session"""
+        """
+        Clear user authentication from session
+        
+        Returns:
+            True: User tokens and OAuth state were successfully cleared\n
+            False: Session update failed (session key empty or session doesn't exist)
+        """
         return self.update_session(
             session_key,
             tokens=None,

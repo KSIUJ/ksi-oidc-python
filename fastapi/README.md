@@ -83,6 +83,30 @@ app = FastAPI()
 # Add custom roles
 Role.add_role("MANAGER", "manager")
 
+"""
+    Needs to include full routes but every route under the route included will require the highest level role from the defined hierarchy the route included in
+    
+    1)
+    Role.USER: ["/example"],
+    Role.MANAGER: ["/example"]
+    Role.ADMIN: ["/example"],
+
+    Will require Role.ADMIN to access /example and all subroutes of it (/example/1, /example/2, etc..)
+    
+    2)
+    Role.USER: ["/example/1"],
+    Role.ADMIN: ["/example"],
+
+    Also will require Role.ADMIN to access /example and all subroutes of it (/example/1, /example/2/1, etc..), so Role.User will not be able to access /example/1
+    
+    3)
+    
+    Role.USER: ["/example"],
+    Role.ADMIN: ["/example/1"],
+    
+    Role.USER will be able to access any route /example/{route}/ where route != 1 and all the /example/1/... will also be not accessible by Role.USER
+
+"""
 ROLE_ROUTES: Dict[Role, List[str]] = {
     Role.PUBLIC: ["/"],  # All routes are accessible to public users by default
     Role.USER: ["/example/protected", "/docs", "/openapi.json"],
